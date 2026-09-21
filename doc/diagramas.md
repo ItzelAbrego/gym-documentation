@@ -13,7 +13,7 @@ flowchart TB
             VISTA_U["Vista Usuarios<br/>(todos los centros)"]
             VISTA_A["Auditoría<br/>(audit_log)"]
         end
-        subgraph WC["Módulo centro (ADMIN / CENTER_ADMIN / USER / REGISTRATION)"]
+        subgraph WC["Módulo centro (ADMIN / CENTER_ADMIN / STAFF / REGISTRATION)"]
             VSOC["Socios · Tarifas · Cortesías"]
             VTUR["Turnos · Check-In · Ventas · Inventario · Reportes"]
             VCFG["Configuración del centro<br/>(gym_profile / gym_config)"]

@@ -11,8 +11,9 @@ centros con filtros **para** dar soporte y corregir accesos sin entrar a cada ce
 
 - [ ] Vista de Usuarios en el módulo superadmin: lista paginada de TODOS los
       usuarios, con **sin filtro por defecto** (plan de origen).
-- [ ] Filtros: por rol (`SUPERADMIN`, `CENTER_ADMIN`, `ADMIN`, `USER`,
-      `REGISTRATION`), por nombre/username y por centro.
+- [ ] Filtros: por rol (`SUPERADMIN`, `CENTER_ADMIN`, `ADMIN`, `STAFF`,
+      `REGISTRATION` — ojo al renombre `USER`→`STAFF`, P-06), por nombre/username
+      y por centro.
 - [ ] Creación de `CENTER_ADMIN` para cualquier centro (selector de centro en el
       formulario); se registra `USER_CREATED` en `audit_log`.
 - [ ] Los superadmins no son editables entre sí (ni se desactivan entre ellos).

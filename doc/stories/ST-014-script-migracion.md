@@ -39,3 +39,7 @@ producción la versión SaaS sin perder datos.
   → `members`/`member_status`/`member_fingerprint_templates` → `rates` y
   artículos → turnos → débitos → suscripciones/cortesías → check-in/out →
   ventas/compras → historiales y tablas de relación.
+- El `SUPERADMIN` inicial **no** lo crea este script: lo crea
+  `DefaultAdminInitializer` con credenciales por env al arrancar la app migrada
+  (decisión P-03, ST-002). El script sí liga `CHECKIN_GYM` y el admin existente al
+  centro migrado.

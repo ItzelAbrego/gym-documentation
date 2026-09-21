@@ -27,5 +27,6 @@ me muestre el menú de mi rol **para** trabajar sin ver funciones ajenas.
 ## Notas técnicas
 
 - Los roles en el token/respuesta llegan como `userRole` string; usar los valores
-  del enum de backend (`SUPERADMIN`, `CENTER_ADMIN`, `ADMIN`, `USER`,
-  `REGISTRATION`) — ojo con el mapeo minúsculas/mayúsculas actual.
+  del enum de backend (`SUPERADMIN`, `CENTER_ADMIN`, `ADMIN`, `STAFF`,
+  `REGISTRATION`) — ojo con el mapeo minúsculas/mayúsculas actual y con el
+  renombre `USER`→`STAFF` (P-06) en guardas y menú.

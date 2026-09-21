@@ -7,7 +7,8 @@
 El plan de origen pide evitar modificaciones malintencionadas de turnos por usuarios
 fuera de las instalaciones del centro. Se plantearon dos mecanismos: estado especial
 automático tras 8 horas abiertas, o solicitud de aprobación al administrador al
-abrir/cerrar.
+abrir/cerrar. (La detección de conexión remota se descartó para esta fase — P-11;
+el control queda por horario y desfase.)
 
 El código ya tiene un patrón de aprobación por revisor que se puede extender:
 
@@ -31,13 +32,18 @@ Reglas:
    estado `PENDING_APPROVAL` y se notifica al `CENTER_ADMIN` (y a los `ADMIN` del
    centro, p. ej. en pantalla de Turnos).
 2. Al **cerrar** un turno, si el desfase respecto a la apertura excede un umbral del
-   centro o el cierre ocurre desde una conexión remota, el cierre queda
-   `PENDING_APPROVAL` y requiere aprobación del `CENTER_ADMIN`.
+   centro, el cierre queda `PENDING_APPROVAL` y requiere aprobación del
+   `CENTER_ADMIN`. (El criterio "desde una conexión remota" queda **fuera de
+   alcance** de esta fase — decisión P-11: no hay mecanismo definido para detectar
+   conexión remota).
 3. La aprobación usa el patrón existente: se llena `opening_reviewer_admin_user` /
    `closing_reviewer_admin_user` con el usuario que aprueba (hoy lo llena el formulario
    con huella/admin; pasa a ser el `CENTER_ADMIN` que aprueba en la cola).
-4. Mientras un turno esté `PENDING_APPROVAL` no se registran transacciones nuevas
-   contra él.
+4. **En revisión (C-01)**: mientras un turno esté `PENDING_APPROVAL`… — hay
+   contradicción entre esta regla (no se registran transacciones nuevas contra él)
+   y ST-012/diagrama 4 (la operación continúa). Recomendación: **no bloquear**
+   (la aprobación es control posterior, no candado). Se corrige esta regla al
+   cerrar C-01 en `preguntas-y-respuestas.md`.
 5. Las columnas de estado nuevas (`pending_approval` / `approved` / `rejected` +
    timestamps) viven en `work_shifts` o en una tabla `work_shift_approvals` ligada; se
    decide en implementación, prefiriendo columnas en `work_shifts` para no duplicar el

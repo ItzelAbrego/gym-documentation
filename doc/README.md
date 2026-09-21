@@ -12,6 +12,12 @@ Esquema de referencia: `gym-documentation/schema.sql` (esquema consolidado actua
 [Diagramas de componentes y flujos](diagramas.md) — arquitectura general, login/JWT
 con claim de centro, impersonación, aprobación de turnos y migración one-shot.
 
+## Preguntas abiertas
+
+[Preguntas y respuestas](preguntas-y-respuestas.md) — dudas vivas sobre el plan:
+contradicciones detectadas entre doc base/ADRs/stories y huecos por cerrar antes
+de implementar.
+
 ## Índice de ADRs
 
 | ADR | Título | Estado |
@@ -24,6 +30,7 @@ con claim de centro, impersonación, aprobación de turnos y migración one-shot
 | [ADR-0006](adr/ADR-0006-aprobacion-de-turnos-fuera-de-instalaciones.md) | Aprobación de apertura/cierre de turnos con desfase | Aceptada |
 | [ADR-0007](adr/ADR-0007-migracion-de-datos.md) | Migración de datos one-shot con script Python | Aceptada |
 | [ADR-0008](adr/ADR-0008-sucursales-diferidas.md) | Sucursales diferidas; configuraciones ligadas a Centro | Aceptada |
+| [ADR-0009](adr/ADR-0009-planes-diferidos.md) | Planes de funcionalidades por centro diferidos | Aceptada |
 
 ## Índice de stories
 

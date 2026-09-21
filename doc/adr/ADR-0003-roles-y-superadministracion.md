@@ -17,21 +17,36 @@ del sistema (entre centros) separada de la operación de un centro, y un rol de
 
 1. **`users.center_id` nullable** (FK a `centers`): `NULL` = superadministrador. No se
    crea un centro "fantasma" para anclar a los superadmins.
-2. **Nuevos valores del enum `UserRole`**:
+2. **Valores del enum `UserRole`**:
    - `SUPERADMIN` — administra el sistema: crea/desactiva centros, asigna planes,
      gestiona usuarios. Sus usuarios llevan `center_id = NULL` y no pueden ser
      editados entre sí.
    - `CENTER_ADMIN` — renombra al antiguo "Billing": usuario principal de un centro.
      Puede crear usuarios y cambiar roles dentro de su centro. Puede haber varios por
      centro; el cambio de rol a `CENTER_ADMIN` solo lo concede un superadmin.
-   - `ADMIN`, `USER`, `REGISTRATION` — permanecen (roles de operación del centro).
+   - `STAFF` — **renombre de `USER`** (decisión P-06: el doc base lo pide como
+     "Staff (cambiar en código)"). Se renombra el valor del enum y se migran los
+     datos existentes (`UPDATE users SET user_role = 'STAFF' WHERE user_role = 'USER'`),
+     junto con los mapeos del frontend.
+   - `ADMIN`, `REGISTRATION` — permanecen.
 3. **Jerarquía de authorities** (`User.getAuthorities()` a actualizar):
-   `SUPERADMIN` → todo; `CENTER_ADMIN` → `ADMIN` + `USER` + `REGISTRATION`;
-   `ADMIN` → `USER` + `REGISTRATION`; etc. Superadmin **no** actúa como
+   `SUPERADMIN` → todo; `CENTER_ADMIN` → `ADMIN` + `STAFF` + `REGISTRATION`;
+   `ADMIN` → `STAFF` + `REGISTRATION`; etc. Superadmin **no** actúa como
    `CENTER_ADMIN` permanente: son cuentas separadas para que sus acciones sean
    auditables.
-4. **Correos únicos globales en `users`** (se mantiene el UNIQUE de
-   `username`): cada persona es un usuario global que pertenece a 0 o 1 centros.
+4. **`username` ES el correo electrónico, único global** (decisión P-01; se
+   mantiene el UNIQUE de `username`): cada persona es un usuario global que
+   pertenece a 0 o 1 centros. El login del doc base ("usa su correo") queda
+   cumplido sin columna nueva. Reglas:
+   - Todo usuario creado por UI/API debe pasar validación de formato email en
+     backend (no solo frontend).
+   - **Excepción documentada**: los usuarios internos del sistema no son correos
+     y están exentos de esa validación: `CHECKIN_GYM` y los quioscos
+     `CHECKIN_<centro>` por centro (P-04, ST-006) y el `SUPERADMIN` inicial (abajo).
+5. **Creación del primer `SUPERADMIN`** (decisión P-03): el inicializador de
+   arranque actual (`DefaultAdminInitializer`, mismo mecanismo que crea hoy al
+   admin con `DEFAULT_ADMIN_PASSWORD_HASH`) crea el `SUPERADMIN` con credenciales
+   por variables de entorno. No lo crea el script de migración (ST-014).
 
 ### Acceso del superadmin a un centro (impersonación)
 
