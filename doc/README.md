@@ -7,6 +7,11 @@ operando sobre el mismo backend y base de datos).
 Plan de origen: `gym-documentation/Implementación de SaaS-20260918193711.md`.
 Esquema de referencia: `gym-documentation/schema.sql` (esquema consolidado actual).
 
+## Diagramas
+
+[Diagramas de componentes y flujos](diagramas.md) — arquitectura general, login/JWT
+con claim de centro, impersonación, aprobación de turnos y migración one-shot.
+
 ## Índice de ADRs
 
 | ADR | Título | Estado |
