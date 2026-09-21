@@ -16,12 +16,20 @@ planteaba crear desde ya configuraciones heredables por sucursal.
    basis_ del plan de origen).
 2. **Las configuraciones se ligan a Centro desde el inicio**: `gym_config`,
    `gym_config_history` y `gym_profile` reciben `center_id`.
-3. **Migrar de Centro a Sucursal después es de bajo costo**: es renombrar/mover la
-   FK (`center_id` → `branch_id`) o insertar una capa (centro → sucursal). El costo
+3. **Cardinalidad objetivo cuando entren las sucursales: 1 centro : N sucursales.**
+   Cada sucursal pertenece a exactamente un centro; el centro sigue siendo el
+   límite de aislamiento multi-tenant (`center_id`). La sucursal será una
+   **sub-división interna del centro**, no un tenant nuevo.
+4. **Migrar de Centro a Sucursal después es de bajo costo**: es renombrar/mover la
+   FK (`center_id` → `branch_id`) o insertar la capa (centro → sucursal). El costo
    declarado al decidir acepta ese trabajo futuro.
-4. **No se diseña heredabilidad por sucursal ahora** (tabla de configuraciones con
-   override por sucursal). Si las sucursales entran al roadmap, se evalúa entonces
-   una tabla `branch_config` con fallback a la del centro.
+5. **Los datos financieros/de auditoría no se ligarán a sucursales** (regla del
+   doc base): aunque una sucursal se elimine, transacciones, ventas y turnos deben
+   permanecer. Cuando entren sucursales, esas tablas quedan a nivel centro.
+6. **No se diseña heredabilidad por sucursal ahora** (tabla de configuraciones con
+   override por sucursal). Cuando las sucursales entren al roadmap se evalúa una
+   jerarquía de configuración en cascada: centro → sucursal, donde la sucursal
+   hereda lo del centro y solo pisa los valores propios.
 
 ## Consecuencias
 

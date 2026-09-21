@@ -85,7 +85,8 @@ abiertas; ninguna bloquea el inicio.
 4. **Migración del gimnasio actual** — proceso de un solo paso sobre respaldo,
   con verificación de conteos y prueba de humo.
 5. **Fase posterior** (no incluida aquí): planes de funcionalidades por centro,
-   sucursales, borrado físico automatizado.
+   **sucursales** (varias sucursales por centro — la estructura ya queda preparada
+   para incorporarlas sin rediseño), borrado físico automatizado.
 
 ## 7. Riesgos principales y mitigación
 
