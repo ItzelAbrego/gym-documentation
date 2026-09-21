@@ -1,6 +1,11 @@
 # ADR-0008: Sucursales diferidas; configuraciones ligadas a Centro
 
-**Estado**: Aceptada · **Fecha**: 2026-09-21
+**Estado**: Sustituida parcialmente por [ADR-0010](ADR-0010-sucursales-contabilidad-aislada.md) · **Fecha**: 2026-09-21
+
+> **Nota (2026-09-21)**: las sucursales dejaron de diferirse — se diseñan en
+> ADR-0010 con contabilidad aislada por sucursal. De esta ADR siguen vigentes:
+> la cascada de configuraciones centro → sucursal como fase posterior y el
+> registro del costo aceptado de mover FKs.
 
 ## Contexto
 

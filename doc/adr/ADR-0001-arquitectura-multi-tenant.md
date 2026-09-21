@@ -22,6 +22,10 @@ todas las tablas operativas. Reglas:
    JWT, ver ADR-0004); el cliente nunca envía el centro.
 3. Los catálogos geográficos `states`, `cities`, `colonias` quedan **compartidos** entre
    centros (no llevan `center_id`).
+4. Dentro del centro, las tablas de dinero y operación en sucursal llevan además
+   `branch_id` (FK a `branches`) y se filtran por la sucursal del contexto — ver
+   [ADR-0010](ADR-0010-sucursales-contabilidad-aislada.md). La sucursal es
+   sub-división interna del centro, nunca un tenant nuevo.
 
 Tablas que reciben `center_id` (mapeo derivado de `schema.sql` y verificado contra las
 entidades):

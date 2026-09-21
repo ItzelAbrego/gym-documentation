@@ -23,14 +23,21 @@ que ningún usuario pueda ver ni modificar datos de otro centro.
 hoy: mismo inicio de sesión, mismas pantallas, mismos flujos. Los cambios son
 internos (cada petición sabe a qué centro pertenece y filtra automáticamente).
 
-**Lo nuevo son tres cosas, todas del lado de la administración del SaaS:**
+**Lo nuevo son cuatro cosas:**
 
-1. **Modo superadministrador**: pantallas nuevas para dar de alta gimnasios,
+1. **Sucursales con contabilidad separada**: un gimnasio puede tener varias
+   ubicaciones. Cada sucursal tiene su propio personal, su propia caja y su
+   propio inventario — la contabilidad de cada una se mantiene exacta y por
+   separado, sin mezclas, y el administrador del centro además ve el
+   consolidado. Los socios se registran una sola vez y pueden entrar a
+   cualquier sucursal de su gimnasio. Las sucursales nunca se borran: solo se
+   desactivan, así la historia financiera queda siempre disponible.
+2. **Modo superadministrador**: pantallas nuevas para dar de alta gimnasios,
    activarlos/desactivarlos y gestionar usuarios de todos los centros.
-2. **Acceso de soporte con auditoría**: el superadministrador puede entrar a un
-   centro para dar ayuda remota, con un aviso visible en pantalla y registro de
-   todas sus acciones (quién, cuándo, en qué centro).
-3. **Aprobación de turnos atípicos**: si alguien abre o cierra caja fuera del
+3. **Acceso de soporte con auditoría**: el superadministrador puede entrar a
+   un centro para dar ayuda remota, con un aviso visible en pantalla y registro
+   de todas sus acciones (quién, cuándo, en qué centro).
+4. **Aprobación de turnos atípicos**: si alguien abre o cierra caja fuera del
    horario del gimnasio, queda una solicitud pendiente que el administrador del
    centro aprueba o rechaza después. La operación no se detiene.
 
@@ -56,7 +63,7 @@ internos (cada petición sabe a qué centro pertenece y filtra automáticamente)
 | 6 | Renombrar el rol interno "User" a "Staff" | El plan original lo marcaba pendiente |
 | 7 | Alta de cada centro crea automáticamente: administrador del centro, usuario de recepción, socios genéricos y configuraciones | El centro queda operativo desde el minuto uno |
 | 8 | Planes/paquetes de funcionalidades por centro: **fase posterior** | Aún no está definido el modelo comercial; los centros nacen con todo habilitado |
-| 9 | Sucursales: **fase posterior** | Hoy ningún dato necesita ligarse a sucursales |
+| 9 | Sucursales: **incluidas** — staff y caja por sucursal, socios del centro, catálogo compartido con stock por sucursal, solo desactivación (nunca borrado) | Requisito del cliente: contabilidad exacta y separada por sucursal, sin perder historia; las configuraciones por sucursal y precios por sucursal quedan para después |
 
 ## 5. Preguntas que necesitan su respuesta
 
@@ -76,17 +83,19 @@ abiertas; ninguna bloquea el inicio.
 
 ## 6. Plan por fases
 
-1. **Fundaciones** — tablas de centro y auditoría, columna de centro en las
-   ~33 tablas operativas, sesión con centro incluido, filtrado automático en
-   todos los servicios.
+1. **Fundaciones** — tablas de centro, **sucursal** y auditoría; columna de
+   centro en las ~33 tablas operativas y de sucursal en las de dinero/caja;
+   sesión con centro/sucursal incluidos; filtrado automático en todos los
+   servicios; stock por sucursal.
 2. **Modo superadministrador** — API y pantallas de centros y usuarios, acceso
    de soporte con auditoría.
-3. **Ajustes funcionales** — aprobación de turnos fuera de horario.
+3. **Ajustes funcionales** — administración de sucursales del centro,
+   aprobación de turnos fuera de horario.
 4. **Migración del gimnasio actual** — proceso de un solo paso sobre respaldo,
   con verificación de conteos y prueba de humo.
 5. **Fase posterior** (no incluida aquí): planes de funcionalidades por centro,
-   **sucursales** (varias sucursales por centro — la estructura ya queda preparada
-   para incorporarlas sin rediseño), borrado físico automatizado.
+   configuraciones y precios por sucursal (la estructura ya está preparada),
+   borrado físico automatizado de centros.
 
 ## 7. Riesgos principales y mitigación
 

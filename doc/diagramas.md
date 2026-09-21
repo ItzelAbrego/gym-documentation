@@ -26,7 +26,7 @@ flowchart TB
     subgraph API["gym-api (Spring Boot 3.2.5)"]
         direction TB
         AC["AuthController<br/>/api/v1/auth/signin · signup"]
-        TP["TokenProvider<br/>(claims: username, user_role,<br/>center_uuid, impersonated_by)"]
+        TP["TokenProvider<br/>(claims: username, user_role,<br/>center_uuid, branch_uuid?, impersonated_by)"]
         FILTER["Filtro JWT / SecurityFilterChain<br/>(extrae centro del token,<br/>valida centro activo)"]
         SAPI["API superadmin<br/>/api/v1/centers · impersonate · exit-impersonation"]
         SVC["Servicios de operación con scoping<br/>(Member, WorkShift, CheckIn, GymConfig,<br/>rates, sales, inventory, reports)"]
@@ -37,8 +37,9 @@ flowchart TB
     subgraph DB["MySQL 8.0 (esquema compartido)"]
         direction TB
         CENTERS[("centers<br/>(id + center_uuid)")]
-        USERS[("users<br/>(center_id nullable)")]
-        OPER[("Tablas operativas<br/>(center_id): members, work_shifts,<br/>subscriptions, check_in, sales…")]
+        BRANCHES[("branches<br/>(id + branch_uuid, 1:N con centro)")]
+        USERS[("users<br/>(center_id + branch_id, nullable)")]
+        OPER[("Tablas operativas<br/>(center_id; branch_id en dinero/caja):<br/>members, work_shifts, subscriptions, sales…")]
         CFG[("gym_profile / gym_config<br/>(center_id)")]
         AUDIT[("audit_log")]
         CAT[("Catálogos globales:<br/>states, cities, colonias")]
@@ -59,6 +60,7 @@ flowchart TB
     FILTER --> TP
     AC --> TP
     SAPI --> CENTERS
+    CENTERS -- "1 : N" --> BRANCHES
     SAPI --> USERS
     SVC --> USERS
     SVC --> OPER

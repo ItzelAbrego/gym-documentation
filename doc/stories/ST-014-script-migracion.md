@@ -12,14 +12,17 @@ producción la versión SaaS sin perder datos.
 
 - [ ] Script Python one-shot que corre sobre un **backup restaurado** de la base
       actual (nunca sobre la base productiva original).
-- [ ] Pasos: (1) verificar esquema con `center_id` aplicado (migraciones de
-      ST-001…ST-005); (2) crear el centro: nombre desde `gym_profile`, `center_uuid`
-      v4; (3) asignar `center_id` del nuevo centro a todas las tablas del mapeo
-      ADR-0001, en orden de flujo de entidades (usuarios → socios → catálogos →
-      transacciones → historiales); (4) insertar socios semilla ("Público en
-      General" `'1111111111'`, "Visita" `'WALK_IN'`) ligados al centro y re-point
-      sus referencias; (5) ligar usuarios no-superadmin al centro y crear el
-      `CENTER_ADMIN` si no existe.
+- [ ] Pasos: (1) verificar esquema con `center_id`/`branch_id` aplicado
+      (migraciones de ST-001…ST-005, ST-015, ST-016); (2) crear el centro
+      (nombre desde `gym_profile`, `center_uuid` v4) y su **sucursal
+      "Principal"** (`branch_uuid` v4, ADR-0010); (3) asignar `center_id` a
+      todas las tablas del mapeo ADR-0001 y `branch_id` = sucursal Principal a
+      las tablas de dinero/operación (ADR-0010 regla 3) y a usuarios operativos
+      (`STAFF`/`REGISTRATION`, incl. `CHECKIN_GYM`); mover saldos de
+      `articles.stock` a `branch_stock` de la Principal; (4) insertar socios
+      semilla ("Público en General" `'1111111111'`, "Visita" `'WALK_IN'`)
+      ligados al centro y re-point sus referencias; (5) ligar usuarios
+      no-superadmin al centro y crear el `CENTER_ADMIN` si no existe.
 - [ ] Imprime conteos por tabla antes y después para verificación manual.
 - [ ] Si falla: NO hay reanudación ni checkpoints — se restaura el backup y se
       reintenta desde cero (decisión registrada).

@@ -10,7 +10,7 @@
 -- doc/preguntas-y-respuestas.md).
 --
 -- Base: schema.sql (esquema actual consolidado V202403121600-V202403121677)
--- Cambios conforme a ADR-0001 … ADR-0009.
+-- Cambios conforme a ADR-0001 … ADR-0010 (incluye sucursales, ADR-0010).
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS fitroom
@@ -75,7 +75,30 @@ CREATE TABLE centers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
+-- [NUEVO] Sucursales (ADR-0010): 1 centro → N sucursales.
+-- Sub-división interna del centro (nunca un tenant). SOLO desactivación
+-- lógica: no hay borrado físico, para que la contabilidad histórica y las
+-- FK financieras sobrevivan intactas aunque la sucursal se "elimine".
+-- ---------------------------------------------------------------------
+
+CREATE TABLE branches (
+    id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    branch_uuid  BINARY(16)   NOT NULL,
+    center_id    INT UNSIGNED NOT NULL,
+    name         VARCHAR(255) NOT NULL,
+    active       BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY ux_branches_uuid (branch_uuid),
+    CONSTRAINT fk_branches_center FOREIGN KEY (center_id) REFERENCES centers(id),
+    INDEX idx_branches_center_id (center_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------
 -- [CAMBIO] users: + center_id (ADR-0003). NULL = superadministrador.
+-- + branch_id (ADR-0010): obligatorio para STAFF/REGISTRATION/quiosco;
+-- NULL para ADMIN/CENTER_ADMIN (ámbito de todo su centro) y SUPERADMIN.
 -- username ES el correo electrónico (P-01): se amplía de VARCHAR(36),
 -- insuficiente para correos reales, a VARCHAR(100).
 -- user_role pasa a: SUPERADMIN, CENTER_ADMIN, ADMIN, STAFF, REGISTRATION
@@ -90,6 +113,7 @@ CREATE TABLE users (
     password VARCHAR(100) NOT NULL,
     user_role VARCHAR(20) NOT NULL,                    -- [CAMBIO] valores: SUPERADMIN|CENTER_ADMIN|ADMIN|STAFF|REGISTRATION (P-06)
     center_id INT UNSIGNED NULL,                       -- [NUEVO] NULL = superadministrador (ADR-0003)
+    branch_id INT UNSIGNED NULL,                       -- [NUEVO] sucursal del staff (ADR-0010)
     created_by VARCHAR(100) NOT NULL,                  -- [CAMBIO] era VARCHAR(36)
     enabled BOOLEAN NOT NULL,
     register_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -97,7 +121,9 @@ CREATE TABLE users (
     PRIMARY KEY (id),
     UNIQUE KEY username_uk (username),
     CONSTRAINT fk_users_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    INDEX idx_users_center_id (center_id)
+    CONSTRAINT fk_users_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    INDEX idx_users_center_id (center_id),
+    INDEX idx_users_branch_id (branch_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
@@ -229,6 +255,7 @@ CREATE TABLE rate_allowed_methods (
 CREATE TABLE work_shifts (
     id INT NOT NULL AUTO_INCREMENT,
     center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] caja por sucursal; máx. 1 turno abierto por sucursal (ADR-0010)
     start_date TIMESTAMP NOT NULL,
     end_date TIMESTAMP,
     entry_amount DECIMAL(10,2) NOT NULL,
@@ -242,18 +269,22 @@ CREATE TABLE work_shifts (
     approval_resolved_by VARCHAR(100),
     PRIMARY KEY (id),
     CONSTRAINT fk_work_shifts_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    INDEX idx_work_shifts_center_id (center_id)
+    CONSTRAINT fk_work_shifts_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    INDEX idx_work_shifts_center_id (center_id),
+    INDEX idx_work_shifts_branch_id (branch_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE work_shifts_notes (
     id INT NOT NULL AUTO_INCREMENT,
     center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal del turno (ADR-0010)
     work_shift_id INT NOT NULL,
     username VARCHAR(100) NOT NULL,
     register_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     comments VARCHAR(150) NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT fk_work_shifts_notes_center FOREIGN KEY (center_id) REFERENCES centers(id),
+    CONSTRAINT fk_work_shifts_notes_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
     CONSTRAINT fk_work_shifts_notes_shift FOREIGN KEY (work_shift_id)
         REFERENCES work_shifts(id),
     INDEX idx_work_shifts_notes_center_id (center_id)
@@ -262,6 +293,7 @@ CREATE TABLE work_shifts_notes (
 CREATE TABLE debit_transactions (
     id INT NOT NULL AUTO_INCREMENT,
     center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal del turno donde nace el dinero (ADR-0010, inmutable)
     concept VARCHAR(255) NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
@@ -273,6 +305,7 @@ CREATE TABLE debit_transactions (
     admin_user_cancellation_approval VARCHAR(100),
     PRIMARY KEY (id),
     CONSTRAINT fk_debit_transactions_center FOREIGN KEY (center_id) REFERENCES centers(id),
+    CONSTRAINT fk_debit_transactions_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
     CONSTRAINT fk_debit_transactions_shift FOREIGN KEY (work_shift_id)
         REFERENCES work_shifts(id),
     INDEX idx_debit_transactions_center_id (center_id)
@@ -281,12 +314,14 @@ CREATE TABLE debit_transactions (
 CREATE TABLE cancellations (
     id INT NOT NULL AUTO_INCREMENT,
     center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal de la transacción cancelada
     debit_transaction_id INT NOT NULL UNIQUE,
     cancellation_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     reason TEXT,
     cancelled_by_user VARCHAR(100) NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT fk_cancellations_center FOREIGN KEY (center_id) REFERENCES centers(id),
+    CONSTRAINT fk_cancellations_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
     CONSTRAINT fk_cancellations_transaction FOREIGN KEY (debit_transaction_id)
         REFERENCES debit_transactions(id),
     INDEX idx_cancellations_center_id (center_id)
@@ -396,6 +431,7 @@ CREATE TABLE courtesy_history (
 CREATE TABLE check_in (
     id INT NOT NULL AUTO_INCREMENT,
     center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal donde se registró la entrada (socio es del centro, ADR-0010)
     member_id INT NOT NULL,
     register_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     username VARCHAR(100) NOT NULL,
@@ -404,6 +440,7 @@ CREATE TABLE check_in (
     -- [CAMBIO] UNIQUE (register_timestamp) eliminado; índice normal en su lugar
     INDEX idx_check_in_register_timestamp (register_timestamp),
     CONSTRAINT fk_check_in_center FOREIGN KEY (center_id) REFERENCES centers(id),
+    CONSTRAINT fk_check_in_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
     CONSTRAINT fk_check_in_member FOREIGN KEY (member_id) REFERENCES members(id),
     INDEX idx_check_in_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -411,12 +448,14 @@ CREATE TABLE check_in (
 CREATE TABLE check_out (
     id INT NOT NULL AUTO_INCREMENT,
     center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] misma sucursal del check-in
     check_in_id INT NOT NULL,
     register_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     username VARCHAR(100) NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_check_out_check_in_id (check_in_id),
     CONSTRAINT fk_check_out_center FOREIGN KEY (center_id) REFERENCES centers(id),
+    CONSTRAINT fk_check_out_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
     CONSTRAINT fk_check_out_check_in FOREIGN KEY (check_in_id) REFERENCES check_in(id),
     INDEX idx_check_out_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -449,25 +488,28 @@ CREATE TABLE checkin_courtesy (
 CREATE TABLE invalid_check_ins (
     id INT NOT NULL AUTO_INCREMENT,
     center_id INT UNSIGNED NOT NULL,                     -- [NUEVO] el intento se registra en el centro donde ocurrió
+    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal donde ocurrió el intento
     input_value VARCHAR(255),
     username VARCHAR(100),
     register_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     CONSTRAINT fk_invalid_check_ins_center FOREIGN KEY (center_id) REFERENCES centers(id),
+    CONSTRAINT fk_invalid_check_ins_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
     INDEX idx_invalid_check_ins_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- [CAMBIO] Ventas, inventario y compras: + center_id
+-- [CAMBIO] Ventas, inventario y compras: + center_id y + branch_id
+-- (ADR-0010). Catálogo de artículos a nivel CENTRO; stock por SUCURSAL.
 -- ---------------------------------------------------------------------
 
 CREATE TABLE articles (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO] catálogo del centro (precio único; override por sucursal = fase posterior)
     name VARCHAR(255) NOT NULL,
     description TEXT,
     sale_price DECIMAL(10,2) NOT NULL,
-    stock INT NOT NULL,
+    stock INT NOT NULL,                                  -- [CAMBIO] deja de ser fuente de verdad: el saldo real vive en branch_stock (ST-016)
     status TINYINT(1) NOT NULL DEFAULT 1,
     expiration_date TIMESTAMP NULL DEFAULT NULL,
     username VARCHAR(100),
@@ -478,9 +520,25 @@ CREATE TABLE articles (
     INDEX idx_articles_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- [NUEVO] Stock por sucursal (ADR-0010 regla 7). El saldo de cada
+-- artículo existe por sucursal; las ventas descuentan de la sucursal
+-- de la operación. Sustituye a articles.stock como fuente de verdad.
+CREATE TABLE branch_stock (
+    id INT NOT NULL AUTO_INCREMENT,
+    branch_id INT UNSIGNED NOT NULL,
+    article_id INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_branch_stock (branch_id, article_id),
+    CONSTRAINT fk_branch_stock_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_branch_stock_article FOREIGN KEY (article_id) REFERENCES articles(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE inventory (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] movimiento de inventario de esta sucursal
     type VARCHAR(50) NOT NULL,
     article_id INT NOT NULL,
     previous_quantity INT NOT NULL,
@@ -489,6 +547,7 @@ CREATE TABLE inventory (
     register_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     username VARCHAR(100),
     CONSTRAINT fk_inventory_center FOREIGN KEY (center_id) REFERENCES centers(id),
+    CONSTRAINT fk_inventory_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
     CONSTRAINT fk_inventory_article FOREIGN KEY (article_id) REFERENCES articles(id)
         ON DELETE CASCADE ON UPDATE CASCADE,
     INDEX idx_inventory_center_id (center_id)
@@ -497,6 +556,7 @@ CREATE TABLE inventory (
 CREATE TABLE sale (
     id INT NOT NULL AUTO_INCREMENT,
     center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal donde ocurrió la venta
     member_id INT NOT NULL,
     is_pending_payment BOOLEAN,
     is_cancelled BOOLEAN,
@@ -505,6 +565,7 @@ CREATE TABLE sale (
     username VARCHAR(100),
     PRIMARY KEY (id),
     CONSTRAINT fk_sale_center FOREIGN KEY (center_id) REFERENCES centers(id),
+    CONSTRAINT fk_sale_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
     CONSTRAINT fk_sale_member FOREIGN KEY (member_id) REFERENCES members(id),
     INDEX idx_sale_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -529,10 +590,12 @@ CREATE TABLE sales_articles (
 CREATE TABLE sales_details (
     id INT NOT NULL AUTO_INCREMENT,
     center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal de la venta/transacción
     debit_transaction_id INT NOT NULL,
     sale_id INT NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT fk_sales_details_center FOREIGN KEY (center_id) REFERENCES centers(id),
+    CONSTRAINT fk_sales_details_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
     CONSTRAINT fk_sales_details_transaction FOREIGN KEY (debit_transaction_id)
         REFERENCES debit_transactions(id),
     CONSTRAINT fk_sales_details_sale FOREIGN KEY (sale_id) REFERENCES sale(id)
@@ -541,12 +604,14 @@ CREATE TABLE sales_details (
 CREATE TABLE purchase (
     id INT NOT NULL AUTO_INCREMENT,
     center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal que recibe la compra
     supplier TEXT,
     username VARCHAR(100),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     CONSTRAINT fk_purchase_center FOREIGN KEY (center_id) REFERENCES centers(id),
+    CONSTRAINT fk_purchase_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
     INDEX idx_purchase_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -713,16 +778,20 @@ SELECT s.member_id,
 FROM subscriptions s;
 
 -- =====================================================================
--- DATOS BASE — ahora PLANTILLAS POR CENTRO (ADR-0005, ST-006)
--- Los inserts de abajo son ilustrativos para UN centro (<center_id>).
--- El alta de un centro (POST /centers) los crea vía backend con el
--- center_id del centro nuevo; los catálogos geográficos siguen globales.
+-- DATOS BASE — PLANTILLAS POR CENTRO Y SUCURSAL (ADR-0005/0010, ST-006/ST-015)
+-- Los inserts de abajo son ilustrativos para UN centro (<cid>) y su
+-- sucursal principal (<bid>). El alta de un centro (POST /centers) los
+-- crea vía backend; los catálogos geográficos siguen globales.
 -- =====================================================================
 
 -- Global (sin centro):
 INSERT INTO states (code, name) VALUES ('VER', 'Veracruz');
 
--- Por centro (center_id = <id del centro>):
+-- Sucursal principal del centro (una por centro al alta; más bajo /branches):
+-- INSERT INTO branches (branch_uuid, center_id, name, active)
+-- VALUES (UUID_TO_BIN(UUID(), 1), <cid>, 'Principal', TRUE);
+
+-- Por centro (center_id = <cid>):
 -- INSERT INTO gym_config (center_id, name, type, is_enabled) VALUES
 --     (<cid>, 'Number Pad', 'DEVICE', 0),
 --     (<cid>, 'Fingerprint', 'DEVICE', 0),
@@ -745,11 +814,12 @@ INSERT INTO states (code, name) VALUES ('VER', 'Veracruz');
 -- INSERT INTO members (center_id, name, last_names, cell_phone, is_favorite, is_internal)
 -- VALUES (<cid>, 'Visita', 'público general', 'WALK_IN', FALSE, TRUE);
 
--- Usuario quiosco del centro (rol REGISTRATION, exento de formato correo, P-04):
--- INSERT INTO users (username, password, user_role, center_id, created_by, enabled)
--- VALUES ('CHECKIN_<slug>', '<hash>', 'REGISTRATION', <cid>, 'SYSTEM', TRUE);
+-- Usuario quiosco por sucursal (rol REGISTRATION, exento de formato correo, P-04):
+-- INSERT INTO users (username, password, user_role, center_id, branch_id, created_by, enabled)
+-- VALUES ('CHECKIN_<slug>', '<hash>', 'REGISTRATION', <cid>, <bid>, 'SYSTEM', TRUE);
 
 -- El SUPERADMIN inicial NO se inserta aquí: lo crea DefaultAdminInitializer
 -- al arrancar Spring Boot con credenciales por variables de entorno (P-03).
--- El CHECKIN_GYM histórico de la instalación actual queda ligado al centro
--- migrado por el script one-shot (ST-014).
+-- La instalación actual migra a: 1 centro + 1 sucursal "Principal" que
+-- hereda todo el branch_id histórico (ST-014); su CHECKIN_GYM queda ligado
+-- a esa sucursal.

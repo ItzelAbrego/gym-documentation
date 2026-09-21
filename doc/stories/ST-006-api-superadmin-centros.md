@@ -11,15 +11,16 @@ desde la API **para** dar de alta nuevos clientes FitRoom sin tocar la base de d
 
 - [ ] Endpoints bajo `/api/v1/centers` accesibles solo con rol `SUPERADMIN`
       (rechaza cualquier token con `center_uuid`, es decir, usuarios de centro).
-- [ ] `POST /centers`: crea centro (nombre, datos de perfil) + obligatoriamente
-      crea el usuario `CENTER_ADMIN` inicial (username = correo validado, nombre,
-      password — decisión P-01) en la misma transacción; crea también el **usuario
-      quiosco** del centro (rol `REGISTRATION`, username único global derivado del
-      nombre del centro, p. ej. `CHECKIN_<slug>`, exento de formato correo —
-      decisión P-04); genera `center_uuid` v4; inserta socios semilla
-      ("Público en General", "Visita") y configuraciones `gym_profile`/`gym_config`
-      iniciales del centro; registra `CENTER_CREATED` en `audit_log`.
-      **Sin asignación de plan** (planes diferidos — ADR-0009).
+- [ ] `POST /centers`: crea centro (nombre, datos de perfil) + obligatoriamente,
+      en la misma transacción: la **sucursal principal** del centro (ADR-0010,
+      ST-015); el usuario `CENTER_ADMIN` inicial (username = correo validado,
+      nombre, password — decisión P-01); el **usuario quiosco** de la sucursal
+      principal (rol `REGISTRATION`, username único global derivado del nombre
+      del centro, p. ej. `CHECKIN_<slug>`, exento de formato correo — decisión
+      P-04). Genera `center_uuid` v4 (+ `branch_uuid` de la sucursal); inserta
+      socios semilla ("Público en General", "Visita") y configuraciones
+      `gym_profile`/`gym_config` iniciales del centro; registra `CENTER_CREATED`
+      en `audit_log`. **Sin asignación de plan** (planes diferidos — ADR-0009).
 - [ ] `GET /centers`: lista paginada con búsqueda por nombre, filtro por `active`;
       incluye conteos útiles (socios, usuarios).
 - [ ] `PUT /centers/{center_uuid}`: nombre y datos de perfil.

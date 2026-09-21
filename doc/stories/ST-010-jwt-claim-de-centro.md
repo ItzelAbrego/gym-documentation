@@ -10,14 +10,17 @@ manipulable por el frontend.
 
 ## Criterios de aceptación
 
-- [ ] `TokenProvider` agrega claims `center_uuid` y `user_role` al token al hacer
+- [ ] `TokenProvider` agrega claims `center_uuid`, `branch_uuid` (solo si el
+      usuario está asignado a una sucursal — ADR-0010; NULL para
+      `ADMIN`/`CENTER_ADMIN`/`SUPERADMIN`) y `user_role` al token al hacer
       signin; los toma de `User` (hoy solo firma `username` como subject y
       `CLAIM_NAME "username"`).
 - [ ] Token de superadmin: sin `center_uuid` (o `center_uuid: null`) y rol
       `SUPERADMIN`.
 - [ ] El filtro de autenticación (el que hoy valida el JWT en cada request)
-      extrae `center_uuid` + `user_role` y los expone al resto de la app (context
-      o detalles de autenticación) para que los servicios hagan scoping.
+      extrae `center_uuid` + `branch_uuid` + `user_role` y los expone al resto
+      de la app (context o detalles de autenticación) para que los servicios
+      hagan scoping por centro y sucursal (ST-016).
 - [ ] El frontend NO envía el UUID en headers/cuerpos: los servicios existentes
       (`auth.service.ts`, header Bearer manual) no cambian su contrato.
 - [ ] El signin (`/api/v1/auth/signin`, `AuthController.java:64-87`) sigue

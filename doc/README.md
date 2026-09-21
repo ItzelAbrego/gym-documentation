@@ -37,8 +37,9 @@ de implementar.
 | [ADR-0005](adr/ADR-0005-unicidad-de-socios-por-centro.md) | Unicidad de teléfonos y correos de socios por centro | Aceptada |
 | [ADR-0006](adr/ADR-0006-aprobacion-de-turnos-fuera-de-instalaciones.md) | Aprobación de apertura/cierre de turnos con desfase | Aceptada |
 | [ADR-0007](adr/ADR-0007-migracion-de-datos.md) | Migración de datos one-shot con script Python | Aceptada |
-| [ADR-0008](adr/ADR-0008-sucursales-diferidas.md) | Sucursales diferidas; configuraciones ligadas a Centro | Aceptada |
+| [ADR-0008](adr/ADR-0008-sucursales-diferidas.md) | Sucursales diferidas; configuraciones ligadas a Centro | Sustituida parcialmente por ADR-0010 |
 | [ADR-0009](adr/ADR-0009-planes-diferidos.md) | Planes de funcionalidades por centro diferidos | Aceptada |
+| [ADR-0010](adr/ADR-0010-sucursales-contabilidad-aislada.md) | Sucursales (1:N con centro) y contabilidad aislada por sucursal | Aceptada |
 
 ## Índice de stories
 
@@ -61,10 +62,12 @@ El orden de implementación sugerido es el de la sección "Orden sugerido" del f
 | [ST-012](stories/ST-012-aprobacion-de-turnos.md) | Aprobación de apertura/cierre de turnos con desfase | Adaptación | ST-002, ST-013 |
 | [ST-013](stories/ST-013-scoping-de-endpoints.md) | Validación del claim de centro en endpoints existentes | Adaptación | ST-010, ST-004 |
 | [ST-014](stories/ST-014-script-migracion.md) | Script de migración de datos (one-shot) | Migración | ST-001…ST-005 |
+| [ST-015](stories/ST-015-tabla-branches-y-admin.md) | Tabla `branches` + administración de sucursales del centro | Principal | ST-001, ST-002 |
+| [ST-016](stories/ST-016-scoping-por-sucursal.md) | `branch_id` + contexto de sucursal; stock por sucursal | Principal | ST-004, ST-010, ST-015 |
 
 ## Orden sugerido de implementación
 
-1. **Fundaciones**: ST-001 → ST-002 → ST-003 → ST-004 → ST-005 → ST-010 → ST-013
+1. **Fundaciones**: ST-001 → ST-002 → ST-003 → ST-004 → ST-005 → ST-015 → ST-016 → ST-010 → ST-013
 2. **Superadmin**: ST-006 → ST-011 → ST-007 → ST-008 → ST-009
 3. **Adaptación funcional**: ST-012
 4. **Migración** (fase posterior, con datos reales): ST-014

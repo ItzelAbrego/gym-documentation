@@ -26,6 +26,9 @@ de autenticación lo extrae y lo pone a disposición de los endpoints.
 
 1. `TokenProvider.generateAccessToken(User)` agrega los claims:
    - `center_uuid`: `center_uuid` del usuario (NULL para superadmins).
+   - `branch_uuid`: `branch_uuid` del usuario, para staff asignado a una sucursal
+     (NULL para `ADMIN`/`CENTER_ADMIN`/`SUPERADMIN` — ver
+     [ADR-0010](ADR-0010-sucursales-contabilidad-aislada.md)).
    - `user_role`: nombre del rol (deja de depender de una respuesta separada).
 2. El filtro que valida el token resuelve el centro una vez (por `center_uuid`) y lo
    expone como atributo de la petición / argumento de controller / servicio (los

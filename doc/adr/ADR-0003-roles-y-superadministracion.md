@@ -16,7 +16,10 @@ del sistema (entre centros) separada de la operación de un centro, y un rol de
 ### Modelo
 
 1. **`users.center_id` nullable** (FK a `centers`): `NULL` = superadministrador. No se
-   crea un centro "fantasma" para anclar a los superadmins.
+   crea un centro "fantasma" para anclar a los superadmins. Existe además
+   **`users.branch_id` nullable** (ADR-0010): obligatorio para `STAFF`/
+   `REGISTRATION` (incl. quioscos), NULL para `ADMIN`/`CENTER_ADMIN` (ámbito de
+   todo su centro) y siempre NULL para `SUPERADMIN`.
 2. **Valores del enum `UserRole`**:
    - `SUPERADMIN` — administra el sistema: crea/desactiva centros, asigna planes,
      gestiona usuarios. Sus usuarios llevan `center_id = NULL` y no pueden ser
