@@ -158,6 +158,7 @@ para no duplicar formularios (nombre del centro vs `gym_profile.name`).
 | M-02 | Retención/limpieza de `audit_log` (¿se depura o crece indefinidamente?) | ☐ |
 | M-03 | Si un centro se desactiva **mientras** hay una sesión impersonada activa, el token muere (filtro valida centro activo); confirmar UX esperada. | ☐ |
 | M-04 | Zona horaria para `OPERATING_HOURS`: ¿cada centro configura la suya o se asume hora local del servidor? | ☐ |
+| M-05 | `gym_config(name, type, is_enabled)` no puede guardar horarios + desfase para `OPERATING_HOURS` (ST-012): ¿columna `value`/JSON, o tabla de horario por centro? | ☐ |
 
 ---
 

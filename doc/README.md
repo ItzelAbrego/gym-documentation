@@ -7,6 +7,14 @@ operando sobre el mismo backend y base de datos).
 Plan de origen: `gym-documentation/Implementación de SaaS-20260918193711.md`.
 Esquema de referencia: `gym-documentation/schema.sql` (esquema consolidado actual).
 
+## Para el cliente
+
+- [Propuesta ejecutiva](propuesta-cliente.md) — qué se propone, qué cambia y qué no,
+  decisiones tomadas, preguntas que necesitan su respuesta y plan por fases.
+  **Este es el documento de lectura principal para el visto bueno.**
+- [Esquema propuesto](schema-propuesta.sql) — base de datos resultante consolidada y
+  anotada (`[NUEVO]`/`[CAMBIO]`/`[PROVISIONAL]`). Anexo técnico de la propuesta.
+
 ## Diagramas
 
 [Diagramas de componentes y flujos](diagramas.md) — arquitectura general, login/JWT
