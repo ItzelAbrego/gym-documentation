@@ -20,8 +20,10 @@ original; nunca contra la base en producción.
 2. **Pasos del script**:
    1. Crea el centro: toma el nombre de `gym_profile` de la base original, genera
       `center_uuid` (v4) y lo inserta en `centers`.
-   2. Liga configuraciones: `gym_profile` y `gym_config` existentes →
-      `center_id` del centro.
+   2. Crea la **sucursal principal** del centro y su usuario quiosco (ADR-0010).
+      Liga `gym_profile` → `branch_id` de la sucursal principal (nombre, teléfono
+      y dirección de la ubicación física original). `gym_config` → `center_id`
+      del centro.
    3. Crea los usuarios con su rol (superadmin/cuentas del sistema se crean fuera o
       después; el admin inicial del centro puede quedar como `CENTER_ADMIN`).
    4. Asigna `center_id` a todas las filas de las tablas del mapeo (ADR-0001), en el

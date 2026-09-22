@@ -135,16 +135,19 @@ nada.
 
 ---
 
-### P-10 — `gym_profile`: ¿fusionar con `centers` o extensión?
+### P-10 — `gym_profile`: ¿fusionar con `branches` o extensión?
 
 **Doc base** ("Nota sobre gym_profile"): *"candidata a fundirse con la tabla
 centers… o a quedar como su extensión ligada por `center_id`. Se decide al
 implementar."*
-[ADR-0002](./adr/ADR-0002-identificacion-de-centros.md) eligió extensión pero lo
-dejó como "opción a evaluar al implementar; no es bloqueante".
+[ADR-0002](./adr/ADR-0002-identificacion-de-centros.md) eligió extensión ligada
+al centro, pero tras la revisión del PR cambió a **extensión ligada a `branch_id`**
+(ADR-0010): cada sucursal física tiene su propio nombre, teléfono y dirección.
+La pregunta pasa a: ¿fusionar `gym_profile` con `branches` o mantenerla como
+extensión?
 
 **Estado**: sigue abierto deliberadamente. Decidir antes de implementar ST-006
-para no duplicar formularios (nombre del centro vs `gym_profile.name`).
+para no duplicar formularios (nombre de la sucursal vs `gym_profile.name`).
 
 **Respuesta**: ☐ Pendiente.
 

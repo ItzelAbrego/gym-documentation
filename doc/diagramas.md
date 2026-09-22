@@ -16,7 +16,7 @@ flowchart TB
         subgraph WC["Módulo centro (ADMIN / CENTER_ADMIN / STAFF / REGISTRATION)"]
             VSOC["Socios · Tarifas · Cortesías"]
             VTUR["Turnos · Check-In · Ventas · Inventario · Reportes"]
-            VCFG["Configuración del centro<br/>(gym_profile / gym_config)"]
+            VCFG["Configuración<br/>(gym_profile por sucursal · gym_config por centro)"]
         end
         BANNER["Banner modo superadmin<br/>(visible solo impersonado)"]
         AUTHS["auth.service.ts<br/>(token + userRole en localStorage)"]
@@ -40,7 +40,7 @@ flowchart TB
         BRANCHES[("branches<br/>(id + branch_uuid, 1:N con centro)")]
         USERS[("users<br/>(center_id + branch_id, nullable)")]
         OPER[("Tablas operativas<br/>(center_id; branch_id en dinero/caja):<br/>members, work_shifts, subscriptions, sales…")]
-        CFG[("gym_profile / gym_config<br/>(center_id)")]
+        CFG[("gym_profile (branch_id) · gym_config (center_id)")]
         AUDIT[("audit_log")]
         CAT[("Catálogos globales:<br/>states, cities, colonias")]
         SEED[("Socios semilla por centro:<br/>Público en General · Visita")]
@@ -141,14 +141,15 @@ flowchart TB
 ```mermaid
 flowchart TB
     B["1. Backup completo de la base<br/>y restaurar copia de trabajo"] --> M["2. Migraciones Flyway<br/>(ST-001…ST-005: centers, users.center_id,<br/>audit_log, center_id en tablas, uniques compuestas)"]
-    M --> S["3. Script Python one-shot:<br/>- crea centro (nombre desde gym_profile, uuid v4)<br/>- asigna center_id en orden de flujo de entidades<br/>- socios semilla + CENTER_ADMIN"]
+    M --> S["3. Script Python one-shot:<br/>- crea centro (nombre desde gym_profile original, uuid v4)<br/>- crea sucursal principal + liga gym_profile (branch_id)<br/>- asigna center_id en orden de flujo de entidades<br/>- socios semilla + CENTER_ADMIN"]
     S --> V["4. Conteos por tabla antes/después"]
     V --> K{"¿Conteos y smoke OK?"}
     K -- "Sí" --> DONE["Base multi-tenant lista<br/>(un centro con todos los datos)"]
     K -- "No" --> FB["Restaurar backup y reintentar<br/>(sin checkpoints ni reanudación)"]
 ```
 
-Orden de asignación de `center_id` (ADR-0007): `centers` → `users` →
-`gym_profile`/`gym_config` → `members` (+ `member_status`, fingerprints) →
+Orden de asignación (ADR-0007): `centers` → `branches` (sucursal principal) →
+`users` → `gym_config` (→ `center_id`) / `gym_profile` (→ `branch_id` de la
+sucursal principal) → `members` (+ `member_status`, fingerprints) →
 `rates`/artículos → turnos → débitos → suscripciones/cortesías → check-in/out →
 ventas/compras → historiales y tablas de relación.

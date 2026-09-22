@@ -18,9 +18,10 @@ desde la API **para** dar de alta nuevos clientes FitRoom sin tocar la base de d
       principal (rol `REGISTRATION`, username único global derivado del nombre
       del centro, p. ej. `CHECKIN_<slug>`, exento de formato correo — decisión
       P-04). Genera `center_uuid` v4 (+ `branch_uuid` de la sucursal); inserta
-      socios semilla ("Público en General", "Visita") y configuraciones
-      `gym_profile`/`gym_config` iniciales del centro; registra `CENTER_CREATED`
-      en `audit_log`. **Sin asignación de plan** (planes diferidos — ADR-0009).
+      socios semilla ("Público en General", "Visita"), `gym_config` inicial del
+      centro y `gym_profile` inicial de la sucursal principal (con el nombre del
+      centro como nombre base de la sucursal); registra `CENTER_CREATED` en
+      `audit_log`. **Sin asignación de plan** (planes diferidos — ADR-0009).
 - [ ] `GET /centers`: lista paginada con búsqueda por nombre, filtro por `active`;
       incluye conteos útiles (socios, usuarios).
 - [ ] `PUT /centers/{center_uuid}`: nombre y datos de perfil.

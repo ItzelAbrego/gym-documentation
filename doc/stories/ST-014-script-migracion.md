@@ -14,14 +14,16 @@ producción la versión SaaS sin perder datos.
       actual (nunca sobre la base productiva original).
 - [ ] Pasos: (1) verificar esquema con `center_id`/`branch_id` aplicado
       (migraciones de ST-001…ST-005, ST-015, ST-016); (2) crear el centro
-      (nombre desde `gym_profile`, `center_uuid` v4) y su **sucursal
-      "Principal"** (`branch_uuid` v4, ADR-0010); (3) asignar `center_id` a
-      todas las tablas del mapeo ADR-0001 y `branch_id` = sucursal Principal a
-      las tablas de dinero/operación (ADR-0010 regla 3) y a usuarios operativos
-      (`STAFF`/`REGISTRATION`, incl. `CHECKIN_GYM`); mover saldos de
-      `articles.stock` a `branch_stock` de la Principal; (4) insertar socios
-      semilla ("Público en General" `'1111111111'`, "Visita" `'WALK_IN'`)
-      ligados al centro y re-point sus referencias; (5) ligar usuarios
+      (nombre desde `gym_profile` original, `center_uuid` v4) y su **sucursal
+      "Principal"** (`branch_uuid` v4, ADR-0010); (3) ligar `gym_profile` →
+      `branch_id` de la sucursal principal (nombre, teléfono y dirección de la
+      ubicación física original); `gym_config` → `center_id` del centro; (4)
+      asignar `center_id` a todas las tablas del mapeo ADR-0001 y `branch_id` =
+      sucursal Principal a las tablas de dinero/operación (ADR-0010 regla 3) y a
+      usuarios operativos (`STAFF`/`REGISTRATION`, incl. `CHECKIN_GYM`); mover
+      saldos de `articles.stock` a `branch_stock` de la Principal; (5) insertar
+      socios semilla ("Público en General" `'1111111111'`, "Visita" `'WALK_IN'`)
+      ligados al centro y re-point sus referencias; (6) ligar usuarios
       no-superadmin al centro y crear el `CENTER_ADMIN` si no existe.
 - [ ] Imprime conteos por tabla antes y después para verificación manual.
 - [ ] Si falla: NO hay reanudación ni checkpoints — se restaura el backup y se
@@ -29,7 +31,8 @@ producción la versión SaaS sin perder datos.
 - [ ] Sin pruebas automatizadas: la verificación es manual con los conteos y un
       smoke de la app (login, check-in, apertura de turno).
 - [ ] Al terminar, la base migrada levanta la app con un centro funcional
-      (estado, configuraciones y datos de `gym_profile`/`gym_config` del centro).
+      (estado, configuraciones `gym_config` del centro y perfil `gym_profile`
+      de la sucursal principal).
 
 ## Notas técnicas
 
@@ -38,10 +41,11 @@ producción la versión SaaS sin perder datos.
   históricos.
 - El script es un utilitario fuera del classpath de Flyway (Flyway solo corre las
   migraciones de esquema; el poblado es del script, como decidió el plan).
-- Orden de entidades según ADR-0001: `centers` → `users` → `gym_profile`/`gym_config`
-  → `members`/`member_status`/`member_fingerprint_templates` → `rates` y
-  artículos → turnos → débitos → suscripciones/cortesías → check-in/out →
-  ventas/compras → historiales y tablas de relación.
+- Orden de entidades según ADR-0001: `centers` → `branches` (sucursal principal)
+  → `users` → `gym_config` (→ `center_id`) / `gym_profile` (→ `branch_id` de
+  la sucursal principal) → `members`/`member_status`/`member_fingerprint_templates`
+  → `rates` y artículos → turnos → débitos → suscripciones/cortesías →
+  check-in/out → ventas/compras → historiales y tablas de relación.
 - El `SUPERADMIN` inicial **no** lo crea este script: lo crea
   `DefaultAdminInitializer` con credenciales por env al arrancar la app migrada
   (decisión P-03, ST-002). El script sí liga `CHECKIN_GYM` y el admin existente al

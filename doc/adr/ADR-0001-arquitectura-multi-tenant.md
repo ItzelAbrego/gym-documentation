@@ -32,7 +32,8 @@ entidades):
 
 | Grupo               | Tablas                                                                                             |
 | ------------------- | -------------------------------------------------------------------------------------------------- |
-| Acceso y roles      | `users` (nullable, ver ADR-0003), `gym_profile`, `gym_config`, `gym_config_history`                |
+| Acceso y roles      | `users` (nullable, ver ADR-0003), `gym_config`, `gym_config_history`                                  |
+| Perfil de sucursal  | `gym_profile` (`branch_id`, ADR-0010: nombre, teléfono y dirección por ubicación física)               |
 | Socios              | `members`, `member_fingerprint_templates`, `member_status`                                         |
 | Catálogos y tarifas | `membership_config`, `rates`, `rates_table_history`, `rate_allowed_methods`                        |
 | Turnos y dinero     | `work_shifts`, `work_shifts_notes`, `debit_transactions`, `cancellations`                          |

@@ -34,9 +34,11 @@ CREATE TABLE centers (
 
 Además:
 
-- `gym_profile` (perfil del gym: nombre, teléfono, redes, dirección — verificado en
-  `GymProfile.java`) se liga con `center_id` y se conserva como extensión del centro.
-  Fusionarla con `centers` quedó como opción a evaluar al implementar; no es bloqueante.
+- `gym_profile` (perfil de la sucursal: nombre, teléfono, redes, dirección —
+  verificado en `GymProfile.java`) se liga con `branch_id` (ADR-0010): cada
+  sucursal física tiene identidad propia (dirección, nombre y teléfono distintos).
+  Fusionarla con `branches` quedó como opción a evaluar al implementar; no es
+  bloqueante.
 - `gym_config` y `gym_config_history` reciben `center_id` (ver ADR-0008).
 
 ## Consecuencias

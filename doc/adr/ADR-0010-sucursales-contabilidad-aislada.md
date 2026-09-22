@@ -75,7 +75,9 @@ si son eliminadas, deben permanecer"), pero ambas se satisfacen a la vez:
 9. **Alta de centro** (ST-006) crea además la **sucursal principal** del centro
    y su usuario quiosco. **Migración** (ST-014): se crea la sucursal principal
    del centro migrado y todo `branch_id` histórico apunta a ella.
-10. **Configuraciones**: `gym_config`/`gym_profile` quedan a nivel centro. La
+10. **Configuraciones**: `gym_profile` pasa a nivel sucursal (cada ubicación
+    física tiene su propio nombre, teléfono, dirección y redes). `gym_config`
+    se queda a nivel centro (dispositivos, métodos de pago, páginas). La
     cascada centro → sucursal para configuraciones y precios por sucursal se
     difiere (fase posterior), igual que los planes (ADR-0009).
 

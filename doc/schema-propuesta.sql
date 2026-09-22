@@ -647,14 +647,18 @@ CREATE TABLE purchase_details (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- [CAMBIO] Perfil y configuración del centro: + center_id (ADR-0001/0008).
--- P-10 (fusionar gym_profile con centers o mantenerla como extensión)
--- sigue abierta; aquí se muestra como extensión, opción preferida hoy.
+-- [CAMBIO] Perfil de sucursal y configuración de centro.
+-- gym_profile pasa a branch_id (ADR-0010): cada sucursal física tiene su
+-- propio nombre, teléfono, dirección y redes sociales — varían por ubicación.
+-- gym_config se queda en center_id (ADR-0001/0008): dispositivos, métodos de
+-- pago y páginas son compartidos por todo el centro.
+-- P-10 (fusionar gym_profile con branches o mantenerla como extensión) sigue
+-- abierta; aquí se muestra como extensión, opción preferida hoy.
 -- ---------------------------------------------------------------------
 
 CREATE TABLE gym_profile (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO] P-10: ¿fusionar con centers? (decidir antes de ST-006)
+    branch_id INT UNSIGNED NOT NULL,                     -- [CAMBIO] era center_id; pasa a sucursal física (ADR-0010): nombre, teléfono, dirección y redes varían por ubicación
     name VARCHAR(255) NOT NULL,
     phone_number VARCHAR(20),
     email VARCHAR(255),
@@ -671,8 +675,8 @@ CREATE TABLE gym_profile (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    CONSTRAINT fk_gym_profile_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    INDEX idx_gym_profile_center_id (center_id)
+    CONSTRAINT fk_gym_profile_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    INDEX idx_gym_profile_branch_id (branch_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE gym_config (
@@ -827,7 +831,7 @@ INSERT INTO states (code, name) VALUES ('VER', 'Veracruz');
 --     -- preguntas-y-respuestas.md (añadir columna value/JSON o tabla de horario).
 --     (<cid>, 'OPERATING_HOURS', 'SCHEDULE', 0);
 
--- INSERT INTO gym_profile (center_id, name) VALUES (<cid>, '<nombre del centro>');
+-- INSERT INTO gym_profile (branch_id, name) VALUES (<bid>, '<nombre de la sucursal>');
 
 -- Socios semilla internos (uno por centro):
 -- INSERT INTO members (center_id, name, last_names, cell_phone, is_favorite, is_internal)
