@@ -1,3 +1,20 @@
+---
+id: ST-014
+tipo: story
+titulo: Script de migración de datos a multi-tenant
+grupo: Migración
+estado: pendiente
+depende_de:
+  - ST-001
+  - ST-002
+  - ST-003
+  - ST-004
+  - ST-005
+  - ST-013
+adrs:
+  - ADR-0007
+---
+
 # ST-014 — Script de migración de datos a multi-tenant
 
 **Grupo**: Migración · **Depende de**: ST-001, ST-002, ST-003, ST-004, ST-005, ST-013 · **ADRs**: [ADR-0007](../adr/ADR-0007-migracion-de-datos.md)

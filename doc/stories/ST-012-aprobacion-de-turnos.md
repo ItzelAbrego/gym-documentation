@@ -1,3 +1,16 @@
+---
+id: ST-012
+tipo: story
+titulo: Aprobación de turnos fuera de horario de instalaciones
+grupo: Adaptación
+estado: pendiente
+depende_de:
+  - ST-002
+  - ST-013
+adrs:
+  - ADR-0006
+---
+
 # ST-012 — Aprobación de turnos fuera de horario de instalaciones
 
 **Grupo**: Adaptación · **Depende de**: ST-002, ST-013 · **ADRs**: [ADR-0006](../adr/ADR-0006-aprobacion-de-turnos-fuera-de-instalaciones.md)

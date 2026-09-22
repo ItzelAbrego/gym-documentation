@@ -1,3 +1,15 @@
+---
+id: ST-001
+tipo: story
+titulo: Tabla centers con id y UUID y su modelo
+grupo: Principal
+estado: pendiente
+depende_de: []
+adrs:
+  - ADR-0001
+  - ADR-0002
+---
+
 # ST-001 — Tabla `centers` con id + UUID y su modelo
 
 **Grupo**: Principal · **Depende de**: — · **ADRs**: [ADR-0001](../adr/ADR-0001-arquitectura-multi-tenant.md), [ADR-0002](../adr/ADR-0002-identificacion-de-centros.md)

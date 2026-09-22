@@ -1,3 +1,16 @@
+---
+id: ST-011
+tipo: story
+titulo: Frontend, login, guards y menú multi-rol
+grupo: Adaptación
+estado: pendiente
+depende_de:
+  - ST-010
+adrs:
+  - ADR-0003
+  - ADR-0004
+---
+
 # ST-011 — Frontend: login, guards y menú multi-rol
 
 **Grupo**: Adaptación · **Depende de**: ST-010 · **ADRs**: [ADR-0003](../adr/ADR-0003-roles-y-superadministracion.md), [ADR-0004](../adr/ADR-0004-jwt-claim-de-centro.md)

@@ -1,3 +1,16 @@
+---
+id: ST-005
+tipo: story
+titulo: Unicidad de socios por centro
+grupo: Principal
+estado: pendiente
+depende_de:
+  - ST-001
+  - ST-004
+adrs:
+  - ADR-0005
+---
+
 # ST-005 — Unicidad de socios por centro
 
 **Grupo**: Principal · **Depende de**: ST-001, ST-004 · **ADRs**: [ADR-0005](../adr/ADR-0005-unicidad-de-socios-por-centro.md)

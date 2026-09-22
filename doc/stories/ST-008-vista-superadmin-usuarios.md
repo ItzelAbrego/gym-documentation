@@ -1,3 +1,16 @@
+---
+id: ST-008
+tipo: story
+titulo: Vista superadmin de usuarios de todos los centros
+grupo: Superadmin
+estado: pendiente
+depende_de:
+  - ST-006
+  - ST-011
+adrs:
+  - ADR-0003
+---
+
 # ST-008 — Vista superadmin: Usuarios (todos los centros)
 
 **Grupo**: Superadmin · **Depende de**: ST-006, ST-011 · **ADRs**: [ADR-0003](../adr/ADR-0003-roles-y-superadministracion.md)

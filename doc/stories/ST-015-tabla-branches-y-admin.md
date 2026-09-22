@@ -1,3 +1,16 @@
+---
+id: ST-015
+tipo: story
+titulo: Tabla branches y administración de sucursales del centro
+grupo: Principal
+estado: pendiente
+depende_de:
+  - ST-001
+  - ST-002
+adrs:
+  - ADR-0010
+---
+
 # ST-015 — Tabla `branches` y administración de sucursales del centro
 
 **Grupo**: Principal · **Depende de**: ST-001, ST-002 · **ADRs**: [ADR-0010](../adr/ADR-0010-sucursales-contabilidad-aislada.md)

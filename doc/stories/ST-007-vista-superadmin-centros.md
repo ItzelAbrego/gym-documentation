@@ -1,3 +1,16 @@
+---
+id: ST-007
+tipo: story
+titulo: Vista superadmin de centros
+grupo: Superadmin
+estado: pendiente
+depende_de:
+  - ST-006
+  - ST-011
+adrs:
+  - ADR-0003
+---
+
 # ST-007 — Vista superadmin: Centros
 
 **Grupo**: Superadmin · **Depende de**: ST-006, ST-011 · **ADRs**: [ADR-0003](../adr/ADR-0003-roles-y-superadministracion.md)

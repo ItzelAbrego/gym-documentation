@@ -1,3 +1,17 @@
+---
+id: ST-013
+tipo: story
+titulo: Scoping multi-tenant de endpoints y servicios
+grupo: Adaptación
+estado: pendiente
+depende_de:
+  - ST-004
+  - ST-010
+adrs:
+  - ADR-0001
+  - ADR-0004
+---
+
 # ST-013 — Scoping multi-tenant de endpoints y servicios
 
 **Grupo**: Adaptación · **Depende de**: ST-004, ST-010 · **ADRs**: [ADR-0001](../adr/ADR-0001-arquitectura-multi-tenant.md), [ADR-0004](../adr/ADR-0004-jwt-claim-de-centro.md)

@@ -1,3 +1,15 @@
+---
+id: ST-004
+tipo: story
+titulo: Agregar center_id al resto de las tablas
+grupo: Principal
+estado: pendiente
+depende_de:
+  - ST-001
+adrs:
+  - ADR-0001
+---
+
 # ST-004 — Agregar `center_id` al resto de las tablas
 
 **Grupo**: Principal · **Depende de**: ST-001 · **ADRs**: [ADR-0001](../adr/ADR-0001-arquitectura-multi-tenant.md)

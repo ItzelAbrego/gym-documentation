@@ -1,3 +1,18 @@
+---
+id: ST-009
+tipo: story
+titulo: Impersonación de centro
+grupo: Superadmin
+estado: pendiente
+depende_de:
+  - ST-003
+  - ST-006
+  - ST-010
+adrs:
+  - ADR-0003
+  - ADR-0004
+---
+
 # ST-009 — Impersonación de centro
 
 **Grupo**: Superadmin · **Depende de**: ST-003, ST-006, ST-010 · **ADRs**: [ADR-0003](../adr/ADR-0003-roles-y-superadministracion.md), [ADR-0004](../adr/ADR-0004-jwt-claim-de-centro.md)

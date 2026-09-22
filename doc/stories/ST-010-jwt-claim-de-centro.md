@@ -1,3 +1,16 @@
+---
+id: ST-010
+tipo: story
+titulo: JWT con claim de centro
+grupo: Adaptación
+estado: pendiente
+depende_de:
+  - ST-001
+  - ST-002
+adrs:
+  - ADR-0004
+---
+
 # ST-010 — JWT con claim de centro
 
 **Grupo**: Adaptación · **Depende de**: ST-001, ST-002 · **ADRs**: [ADR-0004](../adr/ADR-0004-jwt-claim-de-centro.md)

@@ -1,3 +1,18 @@
+---
+id: ST-016
+tipo: story
+titulo: branch_id, contexto de sucursal y stock por sucursal
+grupo: Principal
+estado: pendiente
+depende_de:
+  - ST-004
+  - ST-010
+  - ST-015
+adrs:
+  - ADR-0010
+  - ADR-0004
+---
+
 # ST-016 — `branch_id`, contexto de sucursal y stock por sucursal
 
 **Grupo**: Principal · **Depende de**: ST-004, ST-010, ST-015 · **ADRs**: [ADR-0010](../adr/ADR-0010-sucursales-contabilidad-aislada.md), [ADR-0004](../adr/ADR-0004-jwt-claim-de-centro.md)

@@ -1,3 +1,15 @@
+---
+id: ST-003
+tipo: story
+titulo: Tabla audit_log y servicio de auditoría
+grupo: Principal
+estado: pendiente
+depende_de:
+  - ST-001
+adrs:
+  - ADR-0003
+---
+
 # ST-003 — Tabla `audit_log` y servicio de auditoría
 
 **Grupo**: Principal · **Depende de**: ST-001 · **ADRs**: [ADR-0003](../adr/ADR-0003-roles-y-superadministracion.md)

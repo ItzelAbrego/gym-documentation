@@ -1,3 +1,19 @@
+---
+id: ST-006
+tipo: story
+titulo: API de superadministración de centros
+grupo: Superadmin
+estado: pendiente
+depende_de:
+  - ST-001
+  - ST-002
+  - ST-003
+  - ST-005
+adrs:
+  - ADR-0002
+  - ADR-0003
+---
+
 # ST-006 — API de superadministración de centros
 
 **Grupo**: Superadmin · **Depende de**: ST-001, ST-002, ST-003, ST-005 · **ADRs**: [ADR-0002](../adr/ADR-0002-identificacion-de-centros.md), [ADR-0003](../adr/ADR-0003-roles-y-superadministracion.md)

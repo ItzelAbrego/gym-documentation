@@ -1,3 +1,15 @@
+---
+id: ST-002
+tipo: story
+titulo: users.center_id nullable y rol CENTER_ADMIN
+grupo: Principal
+estado: pendiente
+depende_de:
+  - ST-001
+adrs:
+  - ADR-0003
+---
+
 # ST-002 — `users.center_id` nullable y rol `CENTER_ADMIN`
 
 **Grupo**: Principal · **Depende de**: ST-001 · **ADRs**: [ADR-0003](../adr/ADR-0003-roles-y-superadministracion.md)
