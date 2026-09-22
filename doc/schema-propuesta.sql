@@ -91,6 +91,10 @@ CREATE TABLE branches (
     updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY ux_branches_uuid (branch_uuid),
+    -- [NUEVO] Permite FK compuesta (branch_id, center_id) -> branches(id, center_id)
+    -- en toda tabla con sucursal: garantiza que la sucursal referenciada
+    -- pertenezca al mismo centro de la fila (invariante centro↔sucursal).
+    UNIQUE KEY ux_branches_id_center (id, center_id),
     CONSTRAINT fk_branches_center FOREIGN KEY (center_id) REFERENCES centers(id),
     INDEX idx_branches_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -121,7 +125,10 @@ CREATE TABLE users (
     PRIMARY KEY (id),
     UNIQUE KEY username_uk (username),
     CONSTRAINT fk_users_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_users_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    -- FK compuesta: si hay sucursal, debe pertenecer al centro del usuario
+    -- (con branch_id NULL la FK compuesta no se evalúa; rige fk_users_center).
+    CONSTRAINT fk_users_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     INDEX idx_users_center_id (center_id),
     INDEX idx_users_branch_id (branch_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -260,7 +267,7 @@ CREATE TABLE work_shifts (
     end_date TIMESTAMP,
     entry_amount DECIMAL(10,2) NOT NULL,
     responsible_user VARCHAR(100) NOT NULL,
-    opening_reviewer_admin_user VARCHAR(100) NOT NULL,
+    opening_reviewer_admin_user VARCHAR(100) NULL,       -- [CAMBIO] era NOT NULL; se llena cuando el CENTER_ADMIN aprueba la apertura, NULL mientras el turno está pendiente (ST-012)
     closing_reviewer_admin_user VARCHAR(100),
     -- [PROVISIONAL C-01] estado de aprobación por horario/desfase:
     approval_status VARCHAR(30) NOT NULL DEFAULT 'NONE', -- NONE|OPEN_PENDING_APPROVAL|CLOSED_PENDING_APPROVAL|APPROVED|REJECTED
@@ -269,7 +276,8 @@ CREATE TABLE work_shifts (
     approval_resolved_by VARCHAR(100),
     PRIMARY KEY (id),
     CONSTRAINT fk_work_shifts_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_work_shifts_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_work_shifts_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     INDEX idx_work_shifts_center_id (center_id),
     INDEX idx_work_shifts_branch_id (branch_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -284,7 +292,8 @@ CREATE TABLE work_shifts_notes (
     comments VARCHAR(150) NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT fk_work_shifts_notes_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_work_shifts_notes_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_work_shifts_notes_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     CONSTRAINT fk_work_shifts_notes_shift FOREIGN KEY (work_shift_id)
         REFERENCES work_shifts(id),
     INDEX idx_work_shifts_notes_center_id (center_id)
@@ -305,7 +314,8 @@ CREATE TABLE debit_transactions (
     admin_user_cancellation_approval VARCHAR(100),
     PRIMARY KEY (id),
     CONSTRAINT fk_debit_transactions_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_debit_transactions_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_debit_transactions_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     CONSTRAINT fk_debit_transactions_shift FOREIGN KEY (work_shift_id)
         REFERENCES work_shifts(id),
     INDEX idx_debit_transactions_center_id (center_id)
@@ -321,7 +331,8 @@ CREATE TABLE cancellations (
     cancelled_by_user VARCHAR(100) NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT fk_cancellations_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_cancellations_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_cancellations_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     CONSTRAINT fk_cancellations_transaction FOREIGN KEY (debit_transaction_id)
         REFERENCES debit_transactions(id),
     INDEX idx_cancellations_center_id (center_id)
@@ -440,7 +451,8 @@ CREATE TABLE check_in (
     -- [CAMBIO] UNIQUE (register_timestamp) eliminado; índice normal en su lugar
     INDEX idx_check_in_register_timestamp (register_timestamp),
     CONSTRAINT fk_check_in_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_check_in_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_check_in_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     CONSTRAINT fk_check_in_member FOREIGN KEY (member_id) REFERENCES members(id),
     INDEX idx_check_in_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -455,7 +467,8 @@ CREATE TABLE check_out (
     PRIMARY KEY (id),
     UNIQUE KEY uq_check_out_check_in_id (check_in_id),
     CONSTRAINT fk_check_out_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_check_out_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_check_out_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     CONSTRAINT fk_check_out_check_in FOREIGN KEY (check_in_id) REFERENCES check_in(id),
     INDEX idx_check_out_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -494,7 +507,8 @@ CREATE TABLE invalid_check_ins (
     register_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     CONSTRAINT fk_invalid_check_ins_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_invalid_check_ins_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_invalid_check_ins_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     INDEX idx_invalid_check_ins_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -547,7 +561,8 @@ CREATE TABLE inventory (
     register_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     username VARCHAR(100),
     CONSTRAINT fk_inventory_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_inventory_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_inventory_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     CONSTRAINT fk_inventory_article FOREIGN KEY (article_id) REFERENCES articles(id)
         ON DELETE CASCADE ON UPDATE CASCADE,
     INDEX idx_inventory_center_id (center_id)
@@ -565,7 +580,8 @@ CREATE TABLE sale (
     username VARCHAR(100),
     PRIMARY KEY (id),
     CONSTRAINT fk_sale_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_sale_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_sale_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     CONSTRAINT fk_sale_member FOREIGN KEY (member_id) REFERENCES members(id),
     INDEX idx_sale_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -595,7 +611,8 @@ CREATE TABLE sales_details (
     sale_id INT NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT fk_sales_details_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_sales_details_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_sales_details_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     CONSTRAINT fk_sales_details_transaction FOREIGN KEY (debit_transaction_id)
         REFERENCES debit_transactions(id),
     CONSTRAINT fk_sales_details_sale FOREIGN KEY (sale_id) REFERENCES sale(id)
@@ -611,7 +628,8 @@ CREATE TABLE purchase (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     CONSTRAINT fk_purchase_center FOREIGN KEY (center_id) REFERENCES centers(id),
-    CONSTRAINT fk_purchase_branch FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT fk_purchase_branch_center FOREIGN KEY (branch_id, center_id)
+        REFERENCES branches(id, center_id),
     INDEX idx_purchase_center_id (center_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -718,12 +736,14 @@ CREATE TABLE member_status (
 
 -- ---------------------------------------------------------------------
 -- Vista sin cambios estructurales: opera sobre member_id (único global),
--- sigue funcionando en multi-centro. NOTA ADR-0001: los consumidores
--- (reportes/queries) deben filtrar por centro al consultarla (ST-013).
+-- sigue funcionando en multi-centro. [CAMBIO] expone center_id para que
+-- los consumidores (reportes/queries) filtren por centro directamente
+-- (ADR-0001 / ST-013).
 -- ---------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW vw_member_today_status AS
 SELECT c.member_id,
+       c.center_id,
        'COURTESY' AS source_type,
        c.id AS source_entity_id,
        CASE
@@ -749,6 +769,7 @@ SELECT c.member_id,
 FROM courtesies c
 UNION ALL
 SELECT s.member_id,
+       s.center_id,
        'SUBSCRIPTION' AS source_type,
        s.id AS source_entity_id,
        CASE

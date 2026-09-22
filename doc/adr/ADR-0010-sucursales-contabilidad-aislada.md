@@ -33,6 +33,13 @@ si son eliminadas, deben permanecer"), pero ambas se satisfacen a la vez:
    `check_in`, `check_out`, `invalid_check_ins`. Las tablas de detalle puras
    (`sales_articles`, `purchase_details`, `checkin_subscription`, `checkin_courtesy`)
    **heredan** la sucursal de su padre (misma regla de herencia que ADR-0001).
+   **Invariante centro↔sucursal**: toda tabla operativa con `center_id` +
+   `branch_id` referencia la sucursal vía FK compuesta
+   `FOREIGN KEY (branch_id, center_id) REFERENCES branches(id, center_id)`
+   (requiere `UNIQUE KEY (id, center_id)` en `branches`). La FK simple a
+   `branches(id)` valida que la sucursal exista, pero no que pertenezca al
+   centro de la fila: sin la compuesta, una fila podría quedar ligada a la
+   sucursal de **otro centro** y mezclar contabilidad entre tenants.
 4. **Socios son del centro** (`members.center_id`, sin `branch_id`): un socio se
    registra una sola vez y puede entrar a **cualquier sucursal de su centro**;
    cada check-in/venta queda marcado con la sucursal donde ocurrió. Igual para
@@ -43,7 +50,9 @@ si son eliminadas, deben permanecer"), pero ambas se satisfacen a la vez:
    `STAFF`, `REGISTRATION` (incl. usuarios quiosco) **requieren** sucursal;
    `ADMIN` y `CENTER_ADMIN` pueden operar cualquier sucursal de su centro
    (`branch_id` NULL = ámbito de todo el centro). El usuario quiosco
-   `CHECKIN_<slug>` (P-04) es **uno por sucursal**.
+   `CHECKIN_<slug>` (P-04) es **uno por sucursal**. `users` usa la misma FK
+   compuesta de la regla 3: con `branch_id` NULL no se evalúa (comportamiento
+   estándar de MySQL) y rige la FK a `centers`.
 6. **Turno de caja por sucursal**: máximo un turno abierto por sucursal
    (`findOpenWorkShift` pasa a por-branch). El corte de caja se calcula de la
    sucursal del turno; el `CENTER_ADMIN` ve reportes por sucursal y el
