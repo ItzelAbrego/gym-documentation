@@ -2,6 +2,7 @@
 
 **Estado**: Aceptada · **Fecha**: 2026-09-21
 
+
 ## Contexto
 
 Los roles actuales del código son `ADMIN`, `USER`, `REGISTRATION` (`UserRole.java`;

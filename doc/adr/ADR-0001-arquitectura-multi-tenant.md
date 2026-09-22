@@ -30,14 +30,14 @@ todas las tablas operativas. Reglas:
 Tablas que reciben `center_id` (mapeo derivado de `schema.sql` y verificado contra las
 entidades):
 
-| Grupo | Tablas |
-| --- | --- |
-| Acceso y roles | `users` (nullable, ver ADR-0003), `gym_profile`, `gym_config`, `gym_config_history` |
-| Socios | `members`, `member_fingerprint_templates`, `member_status` |
-| Catálogos y tarifas | `membership_config`, `rates`, `rates_table_history`, `rate_allowed_methods` |
-| Turnos y dinero | `work_shifts`, `work_shifts_notes`, `debit_transactions`, `cancellations` |
-| Suscripciones | `member_membership`, `subscriptions`, `subscription_history`, `courtesies`, `courtesy_history` |
-| Check-in | `check_in`, `check_out`, `checkin_subscription`, `checkin_courtesy`, `invalid_check_ins` |
+| Grupo               | Tablas                                                                                             |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| Acceso y roles      | `users` (nullable, ver ADR-0003), `gym_profile`, `gym_config`, `gym_config_history`                |
+| Socios              | `members`, `member_fingerprint_templates`, `member_status`                                         |
+| Catálogos y tarifas | `membership_config`, `rates`, `rates_table_history`, `rate_allowed_methods`                        |
+| Turnos y dinero     | `work_shifts`, `work_shifts_notes`, `debit_transactions`, `cancellations`                          |
+| Suscripciones       | `member_membership`, `subscriptions`, `subscription_history`, `courtesies`, `courtesy_history`     |
+| Check-in            | `check_in`, `check_out`, `checkin_subscription`, `checkin_courtesy`, `invalid_check_ins`           |
 | Ventas e inventario | `articles`, `inventory`, `sale`, `sales_articles`, `sales_details`, `purchase`, `purchase_details` |
 
 Nota: tablas de detalle/historial pueden heredar el centro de su tabla padre
