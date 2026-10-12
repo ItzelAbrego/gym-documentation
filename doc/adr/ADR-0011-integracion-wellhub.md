@@ -1,8 +1,30 @@
-# Integración con Wellhub
+---
+id: ADR-0011
+tipo: adr
+titulo: Integración de FitRoom con Wellhub
+estado: propuesta
+fecha: 2026-10-12
+---
+
+# ADR-0011: Integración de FitRoom con Wellhub
+
+**Estado**: Propuesta · **Fecha**: 2026-10-12
+
+## Contexto
 
 Wellhub es una plataforma de bienestar que las empresas ofrecen a sus colaboradores. Cuando un gimnasio se incorpora como partner, los usuarios cuyo plan incluya ese establecimiento pueden visitarlo y el gimnasio recibe el pago correspondiente a los check-ins validados.
 
 La incorporación del gimnasio y la integración del sistema son procesos relacionados, pero distintos. Primero se debe formalizar la relación comercial y activar la sede en el Portal de Partners. Después se solicita a Wellhub la evaluación técnica del sistema de gestión.
+
+FitRoom necesita definir tanto el procedimiento administrativo para operar como partner como el mecanismo técnico que registrará y validará las visitas. La activación depende del contrato, las credenciales y la autorización final de Wellhub.
+
+## Decisión propuesta
+
+Integrar FitRoom mediante Access Control API v1 y el webhook de check-in de Wellhub una vez aprobada la relación comercial. FitRoom relacionará cada usuario con su Wellhub ID, distinguirá las sedes con el `gym_id` asignado, validará automáticamente las visitas y conservará el Portal de Partners como contingencia.
+
+La solución implementará el disparador automático exigido por Wellhub y un segundo mecanismo de validación asociado al acceso físico o al registro de asistencia. Las visitas de Wellhub se mantendrán separadas de las membresías y cobros vendidos directamente por el gimnasio.
+
+Esta decisión permanece en estado **Propuesta** hasta que Wellhub evalúe el sistema, confirme los casos de prueba y autorice la activación en producción.
 
 ## Alta del gimnasio como partner
 
@@ -268,6 +290,18 @@ Cuando una integración activa presente retrasos, errores de check-in, problemas
 Los problemas con la cuenta, el plan o la aplicación del usuario corresponden al soporte de Wellhub. La confirmación de presencia y el funcionamiento del acceso físico corresponden al gimnasio y a su sistema integrado.
 
 Fuente: [soporte para integraciones](https://wellhub.com/en-us/partner-academy/cms-integration/) y [responsabilidades de Wellhub y del partner](https://wellhub.com/en-us/partner-academy/what-members-expect/).
+
+## Consecuencias
+
+- FitRoom deberá almacenar el Wellhub ID y la relación entre cada sede y su `gym_id`.
+- El sistema dependerá de las credenciales, disponibilidad y reglas operativas de Wellhub.
+- El webhook deberá verificar la firma, responder dentro de un segundo y tolerar reintentos sin duplicar registros.
+- El personal deberá conocer el flujo normal y la validación manual mediante el Portal de Partners.
+- Los pagos seguirán el contrato y los reportes de Wellhub; la integración no modifica la tarifa comercial acordada.
+
+## Alternativa considerada
+
+Operar únicamente desde el Portal de Partners evitaría el desarrollo inicial, pero mantendría la validación manual y la dependencia del personal de recepción. Se conserva únicamente como mecanismo de contingencia, no como solución objetivo.
 
 ## Orden de trabajo
 

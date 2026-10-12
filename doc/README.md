@@ -40,6 +40,7 @@ de implementar.
 | [ADR-0008](adr/ADR-0008-sucursales-diferidas.md) | Sucursales diferidas; configuraciones ligadas a Centro | Sustituida parcialmente por ADR-0010 |
 | [ADR-0009](adr/ADR-0009-planes-diferidos.md) | Planes de funcionalidades por centro diferidos | Aceptada |
 | [ADR-0010](adr/ADR-0010-sucursales-contabilidad-aislada.md) | Sucursales (1:N con centro) y contabilidad aislada por sucursal | Aceptada |
+| [ADR-0011](adr/ADR-0011-integracion-wellhub.md) | Integración de FitRoom con Wellhub | Propuesta |
 
 ## Índice de stories
 
