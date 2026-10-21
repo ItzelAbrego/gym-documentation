@@ -120,7 +120,7 @@ duda de si eso es correcto y qué distingue realmente a ambos roles.
 
 | | `CENTER_ADMIN` | `ADMIN` |
 | --- | --- | --- |
-| Qué es | Usuario **principal** del centro; **renombre del antiguo rol "Billing"** del plan de origen | Administrador **operativo** del centro (rol ya existente hoy) |
+| Qué es | Administrador **principal** del centro (el admin del gimnasio en el modelo mono-gym; conceptualmente el "Billing" del plan de origen) | Administrador **operativo** del centro, por debajo de CENTER_ADMIN (para usuarios creados tras la migración) |
 | Gestión de usuarios | Crea usuarios y **cambia roles** dentro de su centro | Crea usuarios operativos; no gestiona el rol crítico `CENTER_ADMIN` |
 | Jerarquía (`getAuthorities()`) | `CENTER_ADMIN` → `ADMIN` + `STAFF` + `REGISTRATION` (por encima de ADMIN) | `ADMIN` → `STAFF` + `REGISTRATION` |
 | `branch_id` | NULL (ámbito de todo el centro) | NULL (ámbito de todo el centro) |
@@ -133,28 +133,26 @@ es un **administrador operativo** por debajo de él. Ambos abarcan todo el centr
 pero `CENTER_ADMIN` está jerárquicamente arriba y su rol solo lo concede el
 superadmin.
 
-**Respuesta**: la promoción masiva **contradice el ADR-0003**, que es explícito:
+**Respuesta**: la migración `V694` (promover `ADMIN` → `CENTER_ADMIN`) **es
+correcta**. El problema real era que **ADR-0003 no describía explícitamente el
+comportamiento de la migración de datos**, lo que hacía *parecer* que contradecía al
+ADR. Aclarado el caso:
 
-- §Decisión.2: *"`CENTER_ADMIN` — **renombra al antiguo 'Billing'**"* (no "renombra
-  a ADMIN").
-- §Consecuencias: *"Los usuarios con rol `ADMIN` existentes **no cambian**; solo se
-  agregan roles nuevos."*
+1. En el sistema mono-gimnasio, el rol `ADMIN` era el **administrador del gimnasio**.
+   En el modelo SaaS, ese administrador pasa a ser el administrador de **su centro**,
+   es decir `CENTER_ADMIN`. Promoverlos es lo correcto e intencional.
+2. El rol `ADMIN` **permanece en el enum** como rol operativo de centro, para usuarios
+   creados *después* de la migración (por debajo de `CENTER_ADMIN`).
+3. Actualmente **no hay centros productivos**, así que la migración no afecta datos
+   reales; la designación fina de administradores por centro se hace al dar de alta
+   cada centro. Cualquier ajuste puntual de roles lo puede hacer un superadmin desde
+   la UI cuando existan datos.
+4. **Acción**: NO se revierte la migración. Se **aclara ADR-0003** para que documente
+   explícitamente esta regla de migración (hecho). Se descartó la migración de
+   reversión que se había propuesto.
 
-Por tanto:
-
-1. Los `ADMIN` actuales **permanecen como `ADMIN`**.
-2. `CENTER_ADMIN` es un rol **nuevo** (ex-Billing), no una promoción automática.
-3. El `CENTER_ADMIN` del centro histórico se **designa explícitamente** (vía
-   `DefaultAdminInitializer` / script de migración ST-014, o designación manual
-   del responsable), **no** promoviendo a todos los `ADMIN`.
-4. **Acción pendiente**: corregir/reemplazar la migración
-   `V202403121694__replace_admin_to_center_admin.sql` para que **no** haga el
-   `UPDATE` masivo. Confirmar con el autor del PR #438 si hubo una razón de
-   negocio (p. ej. que en el gym original el "dueño" operaba como `ADMIN` y hay
-   que designar a **uno** de ellos como `CENTER_ADMIN`, no a todos).
-
-**Estado**: ☑ Respondida (fuente: ADR-0003). Queda abierta solo la **acción de
-corrección** de la migración `V1694`.
+**Estado**: ☑ Respondida — migración `V694` validada como correcta; ADR-0003
+aclarado. Sin acciones de reversión pendientes.
 
 ---
 

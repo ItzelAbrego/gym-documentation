@@ -30,13 +30,12 @@ la administración del sistema de la operación de cada centro.
 - [ ] `UserRole` agrega `SUPERADMIN` y `CENTER_ADMIN` **y renombra `USER` →
       `STAFF`** (`entity/UserRole.java`), con migración de datos
       (`UPDATE users SET user_role = 'STAFF' WHERE user_role = 'USER'`) — decisión P-06.
-- [ ] **La migración NO promueve en masa `ADMIN` → `CENTER_ADMIN`** (decisión
-      N-01/P-12): los `ADMIN` existentes **se quedan como `ADMIN`** (ADR-0003
-      §Consecuencias). `CENTER_ADMIN` es un rol nuevo (ex-"Billing"); el
-      `CENTER_ADMIN` del centro histórico se designa explícitamente
-      (`DefaultAdminInitializer` / script ST-014), no con un `UPDATE` global.
-      ⚠️ Corregir la migración `V202403121694__replace_admin_to_center_admin.sql`
-      que hoy hace ese `UPDATE` masivo.
+- [ ] **Migración de roles**: los `ADMIN` existentes se **promueven a
+      `CENTER_ADMIN`** (`V202403121694__replace_admin_to_center_admin.sql`) —
+      correcto e intencional (decisión N-01/P-12): el `ADMIN` del sistema
+      mono-gimnasio era el administrador del gym, que en SaaS es el administrador de
+      su centro. `ADMIN` permanece en el enum como rol operativo para usuarios
+      creados tras la migración. Sin centros productivos aún, no afecta datos reales.
 - [ ] `User.getAuthorities()` actualizado: `SUPERADMIN` → todo;
       `CENTER_ADMIN` → `ADMIN`+`STAFF`+`REGISTRATION` (jerarquía de ADR-0003).
 - [ ] Entidad `User` con relación a `Center` (nullable).
