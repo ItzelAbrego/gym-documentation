@@ -307,16 +307,25 @@ Detectados al cotejar las stories contra la rama `Center-feature-branch`
 (2026-10-21). N-01 y N-04 ya quedaron registrados arriba (en P-12 y P-10
 respectivamente).
 
-### N-02 — Tipo de `audit_log.center_id` no coincide con `centers.id` (FK)
+### N-02 — Consistencia de tipo de `audit_log.center_id` con `centers.id` (FK)
 
-**Hallazgo**: la migración `V202403121691__create_audit_log_table.sql` define
-`center_id BIGINT` con FK a `centers(id)`, pero ADR-0002 define `centers.id` como
-`INT UNSIGNED`. Un FK con tipo distinto al PK referenciado falla o degrada el índice
-en InnoDB.
+**Hallazgo inicial**: se asumió que `centers.id` era `INT UNSIGNED` (según ADR-0002)
+y que `audit_log.center_id BIGINT` no coincidía.
 
-**Respuesta**: ☑ **Corregir**: `audit_log.center_id` → `INT UNSIGNED NULL`.
-**Acción**: revisar además que las demás FK nuevas (`users.center_id` y las de
-ST-004) usen `INT UNSIGNED` consistente con `centers.id`.
+**Hallazgo tras verificar el código real** (rama `Center-feature-branch`, 2026-10-21):
+el esquema implementado usa **`centers.id BIGINT`** (migración `V689` + entidad JPA
+`Center.id = Long`), y `audit_log.center_id` también es `BIGINT`. Es decir, **ya son
+consistentes**; no había mismatch real. El tipo consistente de este codebase es
+`BIGINT`, no `INT UNSIGNED`.
+
+**Respuesta**: ☑ **No hay cambio de tipo que hacer.** La divergencia real es entre
+**ADR-0002** (que define `centers.id` como `INT UNSIGNED`) y el **código** (que usó
+`BIGINT`). Cambiar `audit_log.center_id` a `INT UNSIGNED` **rompería** la FK. Acción:
+(1) la rama de reconciliación incluye una migración idempotente que re-afirma
+`BIGINT` y deja la FK en estado conocido; (2) **actualizar ADR-0002** para reflejar
+que el tipo real de `centers.id` es `BIGINT` (y verificar que `users.center_id` y las
+FK de ST-004 sean `BIGINT` consistentes). Una eventual migración a `INT UNSIGNED`
+sería un cambio coordinado de todas las tablas, fuera del alcance de N-02.
 
 ### N-03 — Numeración/orden de migraciones Flyway
 
