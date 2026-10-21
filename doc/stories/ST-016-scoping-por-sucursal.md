@@ -36,16 +36,20 @@ contabilidad de cada sucursal exacta y separada, sin mezclas.
       `center_uuid`); el filtro lo expone como contexto igual que el centro
       (extensión de lo hecho en ST-010).
 - [ ] Resolución del contexto de operación: staff/REGISTRATION siempre operan
-      **su** sucursal (del token); `ADMIN`/`CENTER_ADMIN` (sin sucursal) eligen
-      sucursal en la vista donde el registro la requiere (apertura de turno,
-      check-in, venta) — el backend valida que la sucursal pertenezca al centro.
+      **su** sucursal (del token); `ADMIN` **acotado a sucursal** (con `branch_id`,
+      decisión P-13) también opera solo la suya; `ADMIN`/`CENTER_ADMIN` **sin
+      sucursal** eligen sucursal en la vista donde el registro la requiere
+      (apertura de turno, check-in, venta). El backend valida que la sucursal
+      pertenezca al centro y **rechaza** la operación si no se seleccionó ninguna
+      (decisión N-10: no hay sucursal por defecto, para no contaminar la
+      contabilidad).
 - [ ] **Un solo turno abierto por sucursal**:
       `WorkShiftRepository.findOpenWorkShift` pasa a filtrar por
       `center_id + branch_id` (sustituye la variante por centro de ST-004).
 - [ ] Ventas y salidas/entradas de inventario descuentan/suman en `branch_stock`
-      de la sucursal de la operación; `articles.stock` deja de ser fuente de
-      verdad (queda como cache agregado o se elimina — decidir en esta story,
-      preferido: eliminarlo del dominio).
+      de la sucursal de la operación; **`articles.stock` se elimina del dominio**
+      (decisión N-08: `branch_stock` es la única fuente de verdad del inventario,
+      no se conserva como cache).
 - [ ] Check-in y ventas a socios: el socio sigue siendo del centro (cualquier
       sucursal lo atiende); el registro lleva la sucursal donde ocurrió.
 - [ ] Reportes: corte de caja, ventas e inventario filtran por sucursal;

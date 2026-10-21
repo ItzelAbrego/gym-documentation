@@ -48,7 +48,9 @@ si son eliminadas, deben permanecer"), pero ambas se satisfacen a la vez:
    originó vive en la `debit_transaction` de la sucursal donde se cobró.
 5. **Staff por sucursal**: `users.branch_id` NULL permitido; los roles
    `STAFF`, `REGISTRATION` (incl. usuarios quiosco) **requieren** sucursal;
-   `ADMIN` y `CENTER_ADMIN` pueden operar cualquier sucursal de su centro
+   **`ADMIN` puede llevar `branch_id` de forma opcional** (decisión P-13: con
+   sucursal queda acotado a esa sucursal; sin sucursal abarca todo el centro);
+   `CENTER_ADMIN` siempre opera cualquier sucursal de su centro
    (`branch_id` NULL = ámbito de todo el centro). El usuario quiosco
    `CHECKIN_<slug>` (P-04) es **uno por sucursal**. `users` usa la misma FK
    compuesta de la regla 3: con `branch_id` NULL no se evalúa (comportamiento
@@ -67,11 +69,14 @@ si son eliminadas, deben permanecer"), pero ambas se satisfacen a la vez:
    la sucursal donde ocurren. Todas las ubicaciones de una venta/compra caen en
    la sucursal de la operación.
 8. **JWT con claim de sucursal** (extensión de ADR-0004): usuarios con sucursal
-   llevan `branch_uuid` además de `center_uuid`; el filtro los expone como
-   contexto. Staff solo opera su sucursal; `ADMIN`/`CENTER_ADMIN` sin
-   `branch_uuid` operan el centro completo (selección de sucursal en pantalla
-   para registros, p. ej. apertura de turno, es dato del contexto de la vista,
-   no del tenant).
+   llevan `branch_uuid` además de `center_uuid` (incluye un `ADMIN` acotado a
+   sucursal — decisión P-13); el filtro los expone como contexto. Staff —y
+   `ADMIN` con sucursal— solo operan su sucursal; `ADMIN`/`CENTER_ADMIN` sin
+   `branch_uuid` operan el centro completo y eligen sucursal en pantalla para
+   registros (p. ej. apertura de turno); el backend valida que la sucursal
+   pertenezca al centro y **rechaza** la operación si no se seleccionó ninguna
+   (decisión N-10). La sucursal elegida es dato del contexto de la vista, no del
+   tenant.
 9. **Alta de centro** (ST-006) crea además la **sucursal principal** del centro
    y su usuario quiosco. **Migración** (ST-014): se crea la sucursal principal
    del centro migrado y todo `branch_id` histórico apunta a ella.
@@ -97,8 +102,9 @@ si son eliminadas, deben permanecer"), pero ambas se satisfacen a la vez:
 - ST-010: el JWT pasa a claims `center_uuid` + `branch_uuid` (nullable).
 - Se agregan stories nuevas: tabla `branches` + scoping (ver README, ST-015 y
   ST-016) y vista mínima de administración de sucursales del centro.
-- `articles.stock` deja de ser la fuente de verdad del stock (queda como cache
-  o se migra a `branch_stock`; se decide en ST-016, preferida migración).
+- `articles.stock` **se elimina del dominio** (decisión N-08): `branch_stock` es
+  la única fuente de verdad del stock; no se conserva como cache. La migración de
+  datos (ST-014) traslada los saldos a la sucursal principal.
 - Riesgo de omitir filtro de sucursal = mezclas contables: mismo nivel de
   mitigación que el scoping de centro (revisión + pruebas de aislamiento).
 

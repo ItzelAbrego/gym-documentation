@@ -31,10 +31,13 @@ adrs:
       inicial (username, nombre, password) — llama a `POST /api/v1/centers`.
 - [ ] Edición de centro (nombre/perfil) y desactivación con confirmación
       (Material dialog, mismo patrón que desactivar usuario).
-- [ ] Acción "Entrar al centro": dispara impersonación (ST-009) y navega a la
-      vista de centro con banner de modo superadmin.
-- [ ] Sección de auditoría: tabla paginada de `audit_log` con filtros (centro,
-      actor, acción).
+- [ ] Acción "Entrar al centro": en esta story queda como **botón
+      placeholder/deshabilitado**; la lógica de impersonación (emisión de token,
+      banner, auditoría) se implementa en **ST-009** (decisión N-06). No
+      duplicar aquí.
+- [ ] Sección de auditoría: se extrae a una **vista propia** "ST-007 — Vista
+      auditoría (`audit_log`)" (decisión N-05): tabla paginada de `audit_log` con
+      filtros (centro, actor, acción). Depende de ST-003.
 
 ## Notas técnicas
 

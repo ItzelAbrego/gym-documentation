@@ -39,11 +39,12 @@ Reglas:
 3. La aprobación usa el patrón existente: se llena `opening_reviewer_admin_user` /
    `closing_reviewer_admin_user` con el usuario que aprueba (hoy lo llena el formulario
    con huella/admin; pasa a ser el `CENTER_ADMIN` que aprueba en la cola).
-4. **En revisión (C-01)**: mientras un turno esté `PENDING_APPROVAL`… — hay
-   contradicción entre esta regla (no se registran transacciones nuevas contra él)
-   y ST-012/diagrama 4 (la operación continúa). Recomendación: **no bloquear**
-   (la aprobación es control posterior, no candado). Se corrige esta regla al
-   cerrar C-01 en `preguntas-y-respuestas.md`.
+4. **Un turno `PENDING_APPROVAL` NO bloquea la operación** (decisión C-01,
+   cerrada en `preguntas-y-respuestas.md`): mientras un turno está pendiente de
+   aprobación, los check-ins, ventas y débitos **siguen registrándose** con
+   normalidad. La aprobación es un control posterior, no un candado. (Esta regla
+   reemplaza la versión anterior, que decía "no se registran transacciones nuevas
+   contra él" y contradecía ST-012 y el diagrama 4.)
 5. Las columnas de estado nuevas (`pending_approval` / `approved` / `rejected` +
    timestamps) viven en `work_shifts` o en una tabla `work_shift_approvals` ligada; se
    decide en implementación, prefiriendo columnas en `work_shifts` para no duplicar el

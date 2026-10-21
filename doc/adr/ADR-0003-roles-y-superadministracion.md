@@ -19,8 +19,9 @@ del sistema (entre centros) separada de la operación de un centro, y un rol de
 1. **`users.center_id` nullable** (FK a `centers`): `NULL` = superadministrador. No se
    crea un centro "fantasma" para anclar a los superadmins. Existe además
    **`users.branch_id` nullable** (ADR-0010): obligatorio para `STAFF`/
-   `REGISTRATION` (incl. quioscos), NULL para `ADMIN`/`CENTER_ADMIN` (ámbito de
-   todo su centro) y siempre NULL para `SUPERADMIN`.
+   `REGISTRATION` (incl. quioscos); **opcional para `ADMIN`** (decisión P-13: con
+   sucursal queda acotado a ella, sin sucursal abarca todo su centro); NULL para
+   `CENTER_ADMIN` (ámbito de todo su centro) y siempre NULL para `SUPERADMIN`.
 2. **Valores del enum `UserRole`**:
    - `SUPERADMIN` — administra el sistema: crea/desactiva centros, asigna planes,
      gestiona usuarios. Sus usuarios llevan `center_id = NULL` y no pueden ser
@@ -28,6 +29,10 @@ del sistema (entre centros) separada de la operación de un centro, y un rol de
    - `CENTER_ADMIN` — renombra al antiguo "Billing": usuario principal de un centro.
      Puede crear usuarios y cambiar roles dentro de su centro. Puede haber varios por
      centro; el cambio de rol a `CENTER_ADMIN` solo lo concede un superadmin.
+     **Protección (decisión P-05)**: un `CENTER_ADMIN` no puede ser
+     editado/desactivado/degradado por un `ADMIN` ni por otro `CENTER_ADMIN` del
+     mismo centro; otorgar o revocar ese rol lo hace **únicamente el superadmin** y
+     queda en `audit_log` (`USER_ROLE_CHANGED`).
    - `STAFF` — **renombre de `USER`** (decisión P-06: el doc base lo pide como
      "Staff (cambiar en código)"). Se renombra el valor del enum y se migran los
      datos existentes (`UPDATE users SET user_role = 'STAFF' WHERE user_role = 'USER'`),
@@ -78,6 +83,11 @@ operaciones durante una sesión impersonada.
   el `AuthGuard` actual solo compara `userRole === 'ADMIN'` (`auth.guard.ts:23`) y el
   menú filtra por `ADMIN`/`REGISTRATION`/resto (`menu-items.ts:75-91`).
 - Los usuarios con rol `ADMIN` existentes no cambian; solo se agregan roles nuevos.
+  **La migración de datos NO debe promover `ADMIN` → `CENTER_ADMIN` en masa**
+  (decisión N-01/P-12): `CENTER_ADMIN` es un rol nuevo (ex-"Billing") y el del
+  centro histórico se designa explícitamente (`DefaultAdminInitializer` / script
+  ST-014). ⚠️ Corregir la migración `V202403121694__replace_admin_to_center_admin.sql`,
+  que actualmente hace ese `UPDATE` global.
 - La vista de superadmin muestra a todos los usuarios del sistema con filtros
   (rol, nombre, centro); la vista de centro solo ve a los usuarios de su centro.
 

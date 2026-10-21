@@ -23,7 +23,9 @@ hizo qué, cuándo y en qué centro.
 ## Criterios de aceptación
 
 - [ ] Migración Flyway crea `audit_log`: `id`, `actor_username`, `center_id`
-      (nullable), `action` (enum: `IMPERSONATION_START`, `IMPERSONATION_END`,
+      (nullable, **`INT UNSIGNED`** para coincidir con `centers.id` — decisión
+      N-02; ⚠️ la migración actual usa `BIGINT`, corregir antes de mergear),
+      `action` (enum: `IMPERSONATION_START`, `IMPERSONATION_END`,
       `CENTER_CREATED`, `CENTER_DISABLED`, `USER_CREATED`, `USER_ROLE_CHANGED`,
       etc.), `target` (texto/JSON), `created_at`.
 - [ ] Entidad `AuditLog` + `AuditLogRepository` + `AuditService.record(...)`.
@@ -38,3 +40,6 @@ hizo qué, cuándo y en qué centro.
 - No auditar todo el CRUD operativo: solo acciones de administración del sistema y
   sesiones impersonadas. El log operativo por centro ya existe de facto en las
   tablas `*_history`.
+- Retención (decisión M-02): **sin purga en esta fase**; `audit_log` crece
+  indefinidamente. Queda agendada una política de retención (p. ej. 24 meses) para
+  una fase posterior.

@@ -23,9 +23,20 @@ la administración del sistema de la operación de cada centro.
 ## Criterios de aceptación
 
 - [ ] Migración Flyway: `users.center_id INT NULL` + FK a `centers` + índice.
+- [ ] Migración Flyway: `users.branch_id INT NULL` + FK a `branches` + índice
+      (decisión P-13; detalle en ST-015). Obligatorio para `STAFF`/`REGISTRATION`/
+      quiosco; **opcional para `ADMIN`** (si lleva sucursal queda acotado a ella,
+      si es NULL abarca el centro); NULL para `CENTER_ADMIN`/`SUPERADMIN`.
 - [ ] `UserRole` agrega `SUPERADMIN` y `CENTER_ADMIN` **y renombra `USER` →
       `STAFF`** (`entity/UserRole.java`), con migración de datos
       (`UPDATE users SET user_role = 'STAFF' WHERE user_role = 'USER'`) — decisión P-06.
+- [ ] **La migración NO promueve en masa `ADMIN` → `CENTER_ADMIN`** (decisión
+      N-01/P-12): los `ADMIN` existentes **se quedan como `ADMIN`** (ADR-0003
+      §Consecuencias). `CENTER_ADMIN` es un rol nuevo (ex-"Billing"); el
+      `CENTER_ADMIN` del centro histórico se designa explícitamente
+      (`DefaultAdminInitializer` / script ST-014), no con un `UPDATE` global.
+      ⚠️ Corregir la migración `V202403121694__replace_admin_to_center_admin.sql`
+      que hoy hace ese `UPDATE` masivo.
 - [ ] `User.getAuthorities()` actualizado: `SUPERADMIN` → todo;
       `CENTER_ADMIN` → `ADMIN`+`STAFF`+`REGISTRATION` (jerarquía de ADR-0003).
 - [ ] Entidad `User` con relación a `Center` (nullable).
@@ -34,6 +45,11 @@ la administración del sistema de la operación de cada centro.
       (`CHECKIN_GYM`, quioscos `CHECKIN_<centro>`, admin inicial).
 - [ ] `AuthService.signUp` valida: solo superadmin crea superadmins; un
       `CENTER_ADMIN` crea usuarios solo de su centro.
+- [ ] **Protección de `CENTER_ADMIN`** (decisión P-05): ni un `ADMIN` ni otro
+      `CENTER_ADMIN` del mismo centro pueden editar/desactivar/degradar a un
+      `CENTER_ADMIN`; otorgar o quitar ese rol **solo lo hace el superadmin** y
+      queda en `audit_log` (`USER_ROLE_CHANGED`). Los superadmins no se editan ni
+      desactivan entre sí.
 - [ ] El usuario `CHECKIN_GYM` y el admin inicial creado al arrancar quedan ligados
       al centro de la instalación (inicialización actualizada).
 - [ ] `DefaultAdminInitializer` crea el primer `SUPERADMIN` al arrancar con
