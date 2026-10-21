@@ -23,9 +23,8 @@ hizo qué, cuándo y en qué centro.
 ## Criterios de aceptación
 
 - [ ] Migración Flyway crea `audit_log`: `id`, `actor_username`, `center_id`
-      (nullable, **`BIGINT`** para coincidir con `centers.id`, que en el código
-      real es `BIGINT` — decisión N-02; nota: diverge de ADR-0002 que decía
-      `INT UNSIGNED`, pendiente actualizar el ADR al tipo real),
+      (nullable, **`BIGINT`** para coincidir con `centers.id` — decisión N-02;
+      tipo confirmado en el código y reconciliado en ADR-0002),
       `action` (enum: `IMPERSONATION_START`, `IMPERSONATION_END`,
       `CENTER_CREATED`, `CENTER_DISABLED`, `USER_CREATED`, `USER_ROLE_CHANGED`,
       etc.), `target` (texto/JSON), `created_at`.

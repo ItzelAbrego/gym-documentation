@@ -24,6 +24,10 @@ si son eliminadas, deben permanecer"), pero ambas se satisfacen a la vez:
    UNIQUE (externo, igual que `center_uuid` en ADR-0002), `center_id` NOT NULL,
    `name`, `active`, timestamps. **El centro sigue siendo el límite del tenant**
    (claim `center_uuid`); la sucursal es sub-división interna, nunca un tenant.
+   > **Coherencia de tipos (N-02)**: al implementar `branches` (ST-015, aún
+   > pendiente), `branches.id` y `branches.center_id` deben usar el **mismo tipo
+   > que `centers.id`, que en el código es `BIGINT`** (ver ADR-0002 reconciliado),
+   > no `INT UNSIGNED`, para que las FK sean consistentes.
 2. **Solo desactivación lógica**: `active` flag; no existe borrado físico de
    sucursales (protege regla auditoría: turnos, ventas y transacciones históricas
    de una sucursal inactiva permanecen consultables).
