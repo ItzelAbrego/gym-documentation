@@ -28,8 +28,15 @@ centros con filtros **para** dar soporte y corregir accesos sin entrar a cada ce
       `REGISTRATION` — ojo al renombre `USER`→`STAFF`, P-06), por nombre/username
       y por centro.
 - [ ] Creación de `CENTER_ADMIN` para cualquier centro (selector de centro en el
-      formulario); se registra `USER_CREATED` en `audit_log`.
+      formulario); se registra `USER_CREATED` en `audit_log`. **Otorgar/quitar el
+      rol `CENTER_ADMIN` solo lo hace el superadmin** (decisión P-05); al crear
+      `ADMIN` se puede asignar opcionalmente una **sucursal** (`branch_id`): con
+      sucursal queda acotado a ella, sin sucursal abarca el centro (decisión P-13).
 - [ ] Los superadmins no son editables entre sí (ni se desactivan entre ellos).
+- [ ] **Protección de `CENTER_ADMIN`** (P-05): un `ADMIN` u otro `CENTER_ADMIN` del
+      mismo centro NO pueden editar/desactivar/degradar a un `CENTER_ADMIN`; la UI
+      oculta/deshabilita la acción según el rol del usuario autenticado y el del
+      objetivo.
 - [ ] Un usuario de centro (`CENTER_ADMIN`) puede editar/crear usuarios solo de su
       centro (comportamiento actual de `ADMIN` en `/signup`, acotado a su centro).
 - [ ] La columna de centro identifica a qué centro pertenece cada usuario;
