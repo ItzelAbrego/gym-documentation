@@ -42,6 +42,15 @@ de implementar.
 | [ADR-0010](adr/ADR-0010-sucursales-contabilidad-aislada.md) | Sucursales (1:N con centro) y contabilidad aislada por sucursal | Aceptada |
 | [ADR-0011](adr/ADR-0011-integracion-wellhub.md) | Integración de FitRoom con Wellhub | Propuesta |
 
+## Reglas de negocio
+
+| RN | Título | Estado |
+| --- | --- | --- |
+| [RN-001](reglas-de-negocio/RN-001-planes.md) | Planes de suscripción | Vigente |
+| [RN-002](reglas-de-negocio/RN-002-suscripciones.md) | Suscripciones | Vigente |
+| [RN-003](reglas-de-negocio/RN-003-cortesias.md) | Cortesías | Vigente |
+| [RN-004](reglas-de-negocio/RN-004-check-ins.md) | Check-Ins | Vigente |
+
 ## Índice de stories
 
 Las stories están en `stories/`, ordenadas por grupo y con dependencias explícitas.
