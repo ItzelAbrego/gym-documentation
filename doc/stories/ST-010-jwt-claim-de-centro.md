@@ -24,10 +24,10 @@ manipulable por el frontend.
 ## Criterios de aceptación
 
 - [ ] `TokenProvider` agrega claims `center_uuid`, `branch_uuid` (solo si el
-      usuario está asignado a una sucursal — ADR-0010; NULL para
-      `ADMIN`/`CENTER_ADMIN`/`SUPERADMIN`) y `user_role` al token al hacer
-      signin; los toma de `User` (hoy solo firma `username` como subject y
-      `CLAIM_NAME "username"`).
+      usuario está asignado a una sucursal — ADR-0010; incluye `ADMIN` con
+      sucursal, decisión P-13; NULL para `CENTER_ADMIN`/`SUPERADMIN` y para
+      `ADMIN` sin sucursal) y `user_role` al token al hacer signin; los toma de
+      `User` (hoy solo firma `username` como subject y `CLAIM_NAME "username"`).
 - [ ] Token de superadmin: sin `center_uuid` (o `center_uuid: null`) y rol
       `SUPERADMIN`.
 - [ ] El filtro de autenticación (el que hoy valida el JWT en cada request)
@@ -40,11 +40,16 @@ manipulable por el frontend.
       devolviendo `accessToken`, `username`, `userRole` (agregar `centerUuid` y
       `centerName` para la UI si conviene).
 - [ ] La expiración sigue en 4h (`plusHours(4)` en `TokenProvider`).
+- [ ] **Secreto JWT desde configuración** (decisión N-09, seguridad — ya NO
+      opcional): eliminar el fallback de secreto hardcodeado de `TokenProvider`;
+      el secreto se lee de variable de entorno/configuración y la app falla al
+      arrancar si no está definido.
 
 ## Notas técnicas
 
 - La extracción del claim vive en el filtro/security config (clase a localizar en
   `gym-api` — aún no revisada; es el componente que valida el Bearer antes de
   llegar al controller).
-- `TokenProvider` tiene un fallback de secreto hardcodeado: mover el secreto a
-  configuración queda como mejora adicional, no bloqueante de esta story.
+- `TokenProvider` tiene un fallback de secreto hardcodeado: moverlo a
+  configuración **es criterio de aceptación de esta story** (decisión N-09), ya
+  no una mejora diferible.

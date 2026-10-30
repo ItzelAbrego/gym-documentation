@@ -14,7 +14,7 @@ La tabla `centers` tendrá **doble identificador**:
 
 ```sql
 CREATE TABLE centers (
-    id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    id           BIGINT       NOT NULL AUTO_INCREMENT,
     center_uuid  BINARY(16)   NOT NULL,
     name         VARCHAR(255) NOT NULL,
     active       BOOLEAN      NOT NULL DEFAULT TRUE,
@@ -25,8 +25,16 @@ CREATE TABLE centers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
-1. **`id` INT auto-increment**: PK real y referencia interna (`center_id` en todas las
-   FKs). Joins e índices compuestos baratos.
+> **Reconciliación con el código (2026-10-21, decisión N-02)**: la implementación
+> real (`V202403121689__create_centers_table.sql` + entidad JPA `Center.id = Long`)
+> usó **`BIGINT`**, no `INT UNSIGNED`. Este ADR se actualiza al tipo real: el tipo
+> consistente del codebase para `centers.id` y todas sus FK entrantes
+> (`users.center_id`, `audit_log.center_id`, y las de ST-004) es **`BIGINT`**. Una
+> eventual migración a `INT UNSIGNED` sería un cambio coordinado de todas las tablas
+> y queda fuera de alcance.
+
+1. **`id` BIGINT auto-increment**: PK real y referencia interna (`center_id` en todas
+   las FKs). Joins e índices compuestos baratos.
 2. **`center_uuid` BINARY(16)**: el único identificador que sale del backend hacia
    clientes/APIs externas. Viaja en el JWT (ADR-0004) y se usa para buscar el centro.
 3. **`active` BOOLEAN**: desactivación lógica; el borrado físico es un proceso

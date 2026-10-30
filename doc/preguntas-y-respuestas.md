@@ -34,7 +34,10 @@ la aprobación como control posterior, no como candado), ya lo asumen ST-012 y e
 diagrama, y bloquear la caja por un turno atípico legítimo degrada la operación del
 cliente. Al cerrarla así, corregir la regla 4 de ADR-0006.
 
-**Respuesta**: ☐ Abierta (dejada así a petición; recomendación: no bloquea).
+**Respuesta**: ☑ **Decidido: NO bloquea.** Un turno
+`PENDING_APPROVAL` no detiene la operación: check-ins, ventas y débitos siguen
+registrándose; la aprobación es control posterior, no candado. **Acción**: corregir
+la **regla 4 de ADR-0006** para alinearla con ST-012 y el Diagrama 4.
 
 ---
 
@@ -54,7 +57,11 @@ canal en esta fase (¿correo?, ¿solo aviso en pantalla como ya decide ST-012 pa
 turnos?). Sugerencia: en esta fase, solo avisos en pantalla; correo diferido con la
 fase de planes (ADR-0009).
 
-**Respuesta**: ☐ Pendiente.
+**Respuesta**: ☑ **Esta fase: solo avisos en pantalla** (sin correo). Los eventos
+en pantalla incluyen las solicitudes de aprobación de turnos (ST-012) y el estado
+del centro. El **correo** para notificaciones importantes (aprobaciones,
+desactivación de centro, facturación) se **difiere** a la fase de planes (ADR-0009),
+donde ya existe el canal de facturación (G2).
 
 ---
 
@@ -92,7 +99,112 @@ ser un evento raro.
 edición de usuarios. Si gana B, decidir además si el auditoría del cambio es
 suficiente vía tablas operativas o requiere `audit_log`.
 
-**Respuesta**: ☐ Abierta (documentar ambos casos; recomendación: Opción A).
+**Respuesta**: ☑ **Decidido: Opción A — solo el superadmin** puede
+editar/desactivar/degradar a un `CENTER_ADMIN`. Ni un `ADMIN` ni otro
+`CENTER_ADMIN` del mismo centro pueden afectar a un `CENTER_ADMIN`. Todo cambio
+sobre ese rol pasa por superadministración y se registra en `audit_log`
+(`USER_ROLE_CHANGED`). **Acción**: aplicar la regla en `AuthService.signUp` +
+edición de usuarios (ST-002, ST-008).
+
+---
+
+### P-12 — ¿Cuál es la diferencia entre `ADMIN` y `CENTER_ADMIN`? ¿La migración debe promover todos los `ADMIN` a `CENTER_ADMIN`?
+
+**Contexto**: la rama `Center-feature-branch` incluye la migración
+`V202403121694__replace_admin_to_center_admin.sql`, que ejecuta
+`UPDATE users SET user_role = 'CENTER_ADMIN' WHERE user_role = 'ADMIN'`, es decir
+**promueve en masa a todos los `ADMIN` existentes a `CENTER_ADMIN`**. Surge la
+duda de si eso es correcto y qué distingue realmente a ambos roles.
+
+**Diferencia documentada** (ya está en [ADR-0003](./adr/ADR-0003-roles-y-superadministracion.md)):
+
+| | `CENTER_ADMIN` | `ADMIN` |
+| --- | --- | --- |
+| Qué es | Administrador **principal** del centro (el admin del gimnasio en el modelo mono-gym; conceptualmente el "Billing" del plan de origen) | Administrador **operativo** del centro, por debajo de CENTER_ADMIN (para usuarios creados tras la migración) |
+| Gestión de usuarios | Crea usuarios y **cambia roles** dentro de su centro | Crea usuarios operativos; no gestiona el rol crítico `CENTER_ADMIN` |
+| Jerarquía (`getAuthorities()`) | `CENTER_ADMIN` → `ADMIN` + `STAFF` + `REGISTRATION` (por encima de ADMIN) | `ADMIN` → `STAFF` + `REGISTRATION` |
+| `branch_id` | NULL (ámbito de todo el centro) | NULL (ámbito de todo el centro) |
+| Otorgamiento del rol | **Solo un superadmin** lo concede (ver P-05) | Lo puede crear un `CENTER_ADMIN` del centro |
+| Cantidad por centro | Varios | Varios |
+
+En resumen: `CENTER_ADMIN` es el **responsable/dueño** del centro (el antiguo
+*Billing*: recibe notificaciones importantes y responde por el centro); `ADMIN`
+es un **administrador operativo** por debajo de él. Ambos abarcan todo el centro,
+pero `CENTER_ADMIN` está jerárquicamente arriba y su rol solo lo concede el
+superadmin.
+
+**Respuesta**: la migración `V694` (promover `ADMIN` → `CENTER_ADMIN`) **es
+correcta**. El problema real era que **ADR-0003 no describía explícitamente el
+comportamiento de la migración de datos**, lo que hacía *parecer* que contradecía al
+ADR. Aclarado el caso:
+
+1. En el sistema mono-gimnasio, el rol `ADMIN` era el **administrador del gimnasio**.
+   En el modelo SaaS, ese administrador pasa a ser el administrador de **su centro**,
+   es decir `CENTER_ADMIN`. Promoverlos es lo correcto e intencional.
+2. El rol `ADMIN` **permanece en el enum** como rol operativo de centro, para usuarios
+   creados *después* de la migración (por debajo de `CENTER_ADMIN`).
+3. Actualmente **no hay centros productivos**, así que la migración no afecta datos
+   reales; la designación fina de administradores por centro se hace al dar de alta
+   cada centro. Cualquier ajuste puntual de roles lo puede hacer un superadmin desde
+   la UI cuando existan datos.
+4. **Acción**: NO se revierte la migración. Se **aclara ADR-0003** para que documente
+   explícitamente esta regla de migración (hecho). Se descartó la migración de
+   reversión que se había propuesto.
+
+**Estado**: ☑ Respondida — migración `V694` validada como correcta; ADR-0003
+aclarado. Sin acciones de reversión pendientes.
+
+---
+
+## Sucursales — alcance de roles
+
+### P-13 — ¿Un `ADMIN` puede ver todas las sucursales o debe acotarse a una?
+
+**Contexto**: [ADR-0010](./adr/ADR-0010-sucursales-contabilidad-aislada.md) §5 y §8
+ponen a `ADMIN` y `CENTER_ADMIN` en el mismo nivel de alcance: ambos operan
+**todo el centro** (`branch_id` NULL). Solo `STAFF` y `REGISTRATION` (incl.
+quioscos) quedan atados a una sucursal. Esto deja un hueco para el caso de negocio
+"gerente de una sola sucursal" (un administrador de sede que NO debe ver las demás
+sucursales): hoy ese rol no existe.
+
+**Opciones**:
+
+- **Opción 1 — Dejarlo como está**: `ADMIN` = todo el centro. Válido para centros
+  de una sola sucursal o donde el admin gestiona todas las sedes.
+- **Opción 2 — Acotar `ADMIN` por sucursal (elegida)**: permitir que un `ADMIN`
+  lleve `branch_id`; si lo tiene, su alcance se limita a esa sucursal; si es NULL,
+  mantiene el ámbito de todo el centro (retrocompatible). Reutiliza
+  `users.branch_id` (ya existe, ADR-0010 §5), el claim `branch_uuid` del JWT
+  (ST-010/ST-016) y el scoping por sucursal que ya se construye para
+  `STAFF`/`REGISTRATION` (ST-016); no agrega tablas ni roles nuevos.
+- **Opción 3 — Rol nuevo `BRANCH_ADMIN`**: deja `ADMIN` como centro-completo y crea
+  un rol intermedio ligado a sucursal. Más limpio conceptualmente, pero agrega un
+  rol al modelo y más trabajo.
+
+**Respuesta**: ☑ **Opción 2** — `ADMIN` puede quedar acotado a una sucursal vía
+`branch_id`. Regla de alcance:
+
+- `ADMIN` con `branch_id` != NULL → ve/opera **solo** esa sucursal (igual que
+  `STAFF`/`REGISTRATION` en el scoping, pero con permisos de administrador).
+- `ADMIN` con `branch_id` NULL → ve/opera **todo el centro** (comportamiento
+  actual, retrocompatible).
+- `CENTER_ADMIN` siempre abarca el centro completo (sin cambio).
+
+**Impacto**:
+
+- **ADR-0010 §5 y §8**: documentar que `ADMIN` puede llevar `branch_id` y que su
+  alcance depende de si está o no asignado a una sucursal.
+- **ST-015**: `AuthService.signUp` debe permitir (opcionalmente) asignar sucursal a
+  un `ADMIN`; la vista de Usuarios del centro ofrece el selector de sucursal también
+  para `ADMIN` (hoy pensado solo para `STAFF`/`REGISTRATION`).
+- **ST-016**: el scoping por sucursal debe contemplar desde el diseño que un `ADMIN`
+  puede estar acotado a una sucursal (no asumir que `ADMIN` siempre es
+  centro-completo). Mismo nivel de mitigación de "query sin filtro de sucursal =
+  mezcla" que ya aplica a `STAFF`.
+- **Momento**: decidir e incorporar **antes** de implementar ST-016 para no
+  parchear el scoping después.
+
+**Estado**: ☑ Respondida (Opción 2). Pendiente propagar a ADR-0010, ST-015 y ST-016.
 
 ---
 
@@ -109,7 +221,11 @@ nombre.
 ([ADR-0009](./adr/ADR-0009-planes-diferidos.md))? Candidatos: "Plan SaaS" / "Plan
 de centro" para lo nuevo; "Membresías" para lo vendido a socios.
 
-**Respuesta**: ☐ Pendiente (se puede decidir junto con la fase de planes).
+**Respuesta**: ☑ **Diferido a la fase de planes (G2), con nomenclatura ya
+acordada**: lo nuevo del SaaS se llamará **"Plan de centro"** y lo que se vende a
+socios pasará a **"Membresías"**. El renombrado efectivo (UI + código) se ejecuta
+junto con la fase de planes (ADR-0009); por ahora solo queda registrada la
+decisión de nombres.
 
 ---
 
@@ -131,7 +247,16 @@ nada.
    reportes)?
 3. ¿Se borran también los `users` del centro o se conservan deshabilitados?
 
-**Respuesta**: ☐ Pendiente.
+**Respuesta**: ☑ **Esta fase: solo borrado lógico** (`active = false`). El borrado
+físico se **difiere** (G2/G5) como job manual/asíncrono, con política ya acordada
+para cuando se implemente:
+
+1. Lo **dispara el superadmin** manualmente, tras un período de gracia desde la
+   desactivación (valor por definir al implementar, p. ej. 30–90 días).
+2. **Sí**: se exporta/entrega la información del cliente (respaldo + reportes)
+   **antes** de borrar.
+3. Los `users` del centro **se conservan deshabilitados**, no se borran, para no
+   romper las FK de `audit_log` ni la trazabilidad histórica (G5).
 
 ---
 
@@ -149,19 +274,122 @@ extensión?
 **Estado**: sigue abierto deliberadamente. Decidir antes de implementar ST-006
 para no duplicar formularios (nombre de la sucursal vs `gym_profile.name`).
 
-**Respuesta**: ☐ Pendiente.
+**Respuesta**: ☑ **Decidido: NO fusionar.** `gym_profile` queda como **extensión
+ligada a `branch_id`** (cada sucursal física tiene su propio nombre, teléfono,
+dirección y redes; ADR-0010 §10). No se fusiona con `branches`.
+
+**N-04 — Edición de centro (ST-006 `PUT /centers`) y `gym_profile`**: como el
+perfil vive a nivel sucursal, el `PUT /centers/{center_uuid}` edita **solo el
+nombre/datos del centro**; el perfil de cada sucursal (incl. la principal) se edita
+desde la vista de **Sucursales** (ST-015). Mientras ST-015 no exista, se permite
+como **deuda temporal documentada** que el PUT de centro toque el `gym_profile` de
+la sucursal principal, a retirar cuando llegue ST-015.
 
 ---
 
 ## Menores (registrar, no bloquean)
 
-| # | Pregunta | Estado |
+| # | Pregunta | Decisión / Estado |
 | --- | --- | --- |
-| M-01 | Nombre del "modo cliente" (doc base: "nombre por definir"). Propuesta: **Modo centro**. | ☐ |
-| M-02 | Retención/limpieza de `audit_log` (¿se depura o crece indefinidamente?) | ☐ |
-| M-03 | Si un centro se desactiva **mientras** hay una sesión impersonada activa, el token muere (filtro valida centro activo); confirmar UX esperada. | ☐ |
-| M-04 | Zona horaria para `OPERATING_HOURS`: ¿cada centro configura la suya o se asume hora local del servidor? | ☐ |
-| M-05 | `gym_config(name, type, is_enabled)` no puede guardar horarios + desfase para `OPERATING_HOURS` (ST-012): ¿columna `value`/JSON, o tabla de horario por centro? | ☐ |
+| M-01 | Nombre del "modo cliente". | ☑ **"Modo centro"**. |
+| M-02 | Retención/limpieza de `audit_log`. | ☑ **Sin purga en esta fase** (crece indefinidamente); agendar política de retención (p. ej. 24 meses) a futuro. |
+| M-03 | UX si un centro se desactiva con sesión impersonada activa. | ☑ El token **muere en el siguiente request** (el filtro valida centro activo); UX: **redirigir a login** con mensaje "centro desactivado". Confirmar el copy exacto. |
+| M-04 | Zona horaria de `OPERATING_HOURS`. | ☑ **Cada centro configura la suya** (no hora del servidor); necesario para cadenas multi-ciudad. |
+| M-05 | Almacenamiento de `OPERATING_HOURS` (ST-012). | ☑ **Estructura propia por centro** (tabla de horario por centro o columna `value`/JSON); `gym_config(name,type,is_enabled)` no basta. Definir el formato exacto al implementar ST-012. |
+
+---
+
+## Hallazgos nuevos (revisión de código + huecos entre historias, ST-001…ST-016)
+
+Detectados al cotejar las stories contra la rama `Center-feature-branch`
+(2026-10-21). N-01 y N-04 ya quedaron registrados arriba (en P-12 y P-10
+respectivamente).
+
+### N-02 — Consistencia de tipo de `audit_log.center_id` con `centers.id` (FK)
+
+**Hallazgo inicial**: se asumió que `centers.id` era `INT UNSIGNED` (según ADR-0002)
+y que `audit_log.center_id BIGINT` no coincidía.
+
+**Hallazgo tras verificar el código real** (rama `Center-feature-branch`, 2026-10-21):
+el esquema implementado usa **`centers.id BIGINT`** (migración `V689` + entidad JPA
+`Center.id = Long`), y `audit_log.center_id` también es `BIGINT`. Es decir, **ya son
+consistentes**; no había mismatch real. El tipo consistente de este codebase es
+`BIGINT`, no `INT UNSIGNED`.
+
+**Respuesta**: ☑ **No hay cambio de tipo que hacer.** La divergencia real es entre
+**ADR-0002** (que define `centers.id` como `INT UNSIGNED`) y el **código** (que usó
+`BIGINT`). Cambiar `audit_log.center_id` a `INT UNSIGNED` **rompería** la FK. Acción:
+(1) la rama de reconciliación incluye una migración idempotente que re-afirma
+`BIGINT` y deja la FK en estado conocido; (2) **actualizar ADR-0002** para reflejar
+que el tipo real de `centers.id` es `BIGINT` (y verificar que `users.center_id` y las
+FK de ST-004 sean `BIGINT` consistentes). Una eventual migración a `INT UNSIGNED`
+sería un cambio coordinado de todas las tablas, fuera del alcance de N-02.
+
+### N-03 — Numeración/orden de migraciones Flyway
+
+**Hallazgo**: las migraciones multi-tenant usan prefijos `V2024031216xx` conviviendo
+con otras más recientes. El riesgo real no es el prefijo sino que un backfill corra
+antes de que exista la columna.
+
+**Respuesta**: ☑ **Mantener orden monotónico y verificar en entorno limpio** que
+`flyway migrate` corre en orden y que ninguna migración de `center_id` asume datos
+que aún no existen. No renombrar migraciones ya aplicadas en algún entorno.
+
+### N-05 — Falta ticket "Vista de auditoría" en ST-007
+
+**Hallazgo**: ST-007 pide como criterio una "Sección de auditoría: tabla paginada de
+`audit_log` con filtros", pero entre sus subtickets (portal, crear, catálogo, editar,
+desactivar) no existe uno para la vista de auditoría.
+
+**Respuesta**: ☑ **Crear un ticket propio** "ST-007 — Vista auditoría (audit_log)"
+con tabla paginada y filtros (centro, actor, acción). Depende de ST-003.
+
+### N-06 — "Entrar al centro" (impersonación) en ST-007 vs ST-009
+
+**Hallazgo**: ST-007 lista "Acción Entrar al centro" como criterio, pero la
+impersonación es ST-009 (ticket aparte).
+
+**Respuesta**: ☑ **Fuera de alcance de ST-007**: en ST-007 solo queda el botón
+(placeholder/deshabilitado); la lógica de impersonación (token, banner, auditoría)
+se implementa en **ST-009**. Evita doble implementación.
+
+### N-07 — Conteos de socios/usuarios en `GET /centers`
+
+**Hallazgo**: ST-006 pide conteos de socios y usuarios por centro, sin definir si se
+calculan en vivo o cacheados.
+
+**Respuesta**: ☑ **Cálculo en vivo** (subquery/count agregado) por ahora; con pocas
+decenas de centros es trivial. Nota: si crece a cientos, mover a columnas
+materializadas o vista. Decisión reversible.
+
+### N-08 — `articles.stock` tras `branch_stock` (ST-016)
+
+**Hallazgo**: ST-016 deja abierto si `articles.stock` se elimina o queda como cache.
+
+**Respuesta**: ☑ **Eliminar `articles.stock` del dominio**: `branch_stock` será la
+única fuente de verdad del inventario (preferencia de la propia ST-016 y ADR-0010).
+Se ejecuta al implementar ST-016.
+
+### N-09 — Secreto JWT hardcodeado en `TokenProvider` (ST-010)
+
+**Hallazgo**: ST-010 menciona un fallback de secreto hardcodeado y lo marca como
+"mejora no bloqueante".
+
+**Respuesta**: ☑ **Cerrarlo ahora, no diferir** (seguridad, G-seguridad): mover el
+secreto a variable de entorno/configuración. **Acción**: pasarlo a criterio de
+aceptación de **ST-010** (dejar de ser opcional).
+
+### N-10 — Sucursal para `ADMIN`/`CENTER_ADMIN` sin `branch_uuid` en el token
+
+**Hallazgo**: ST-010/ST-016 dicen que `ADMIN`/`CENTER_ADMIN` sin sucursal eligen
+sucursal en la vista; falta el comportamiento cuando no la seleccionan.
+
+**Respuesta**: ☑ **El front obliga a seleccionar sucursal** cuando el registro la
+requiere (apertura de turno, check-in, venta); **el backend valida** que la sucursal
+pertenezca al centro del token. Si no se selecciona, la operación se **rechaza** (no
+se asume una sucursal por defecto, para no contaminar la contabilidad — G4/G5).
+**Nota**: con P-13 (Opción 2), un `ADMIN` con `branch_id` asignado opera
+directamente su sucursal sin necesidad de seleccionarla.
 
 ---
 

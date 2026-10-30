@@ -23,15 +23,22 @@ controlar las excepciones sin bloquear la operación.
 
 ## Criterios de aceptación
 
-- [ ] Nueva configuración `OPERATING_HOURS` en `gym_config` (por centro): día(s) y
-      horario de atención + desfase tolerado en minutos (threshold).
+- [ ] Nueva configuración `OPERATING_HOURS` **por centro**: día(s) y horario de
+      atención + desfase tolerado en minutos (threshold). La hora se evalúa con la
+      **zona horaria configurada por cada centro**, no la del servidor (decisión
+      M-04). Como `gym_config(name, type, is_enabled)` no basta para guardar
+      horario + desfase, usar una **estructura propia por centro** (tabla de
+      horario por centro, o columna `value`/JSON — decisión M-05; formato exacto
+      a definir al implementar).
 - [ ] Al cerrar turno fuera de horario + desfase (`WorkShiftService`
       `closeWorkShift`, hoy exige revisor con `UserRole.ADMIN` en
       `WorkShiftService.java:89-91`): el turno queda en estado
       `CLOSED_PENDING_APPROVAL` y se genera solicitud pendiente.
 - [ ] Análogo al abrir fuera de horario: `OPEN_PENDING_APPROVAL`.
 - [ ] Los turnos pendientes NO bloquean: check-ins, ventas y débitos siguen
-      operando (decisión: sin regla dura de 8h, todo pasa por aprobación).
+      operando (decisión C-01: sin regla dura de 8h, todo pasa por aprobación).
+      ⚠️ Corregir la **regla 4 de ADR-0006** (que dice "no se registran
+      transacciones nuevas"), que contradice este criterio.
 - [ ] Cola de aprobaciones visible para `CENTER_ADMIN` y `ADMIN`: aprobar o
       rechazar; al aprobar el turno pasa a cerrado/abierto definitivo y se
       asigna `closing_reviewer_admin_user`/`opening_reviewer_admin_user`

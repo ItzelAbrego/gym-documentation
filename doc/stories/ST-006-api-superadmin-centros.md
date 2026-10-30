@@ -39,8 +39,15 @@ desde la API **para** dar de alta nuevos clientes FitRoom sin tocar la base de d
       centro como nombre base de la sucursal); registra `CENTER_CREATED` en
       `audit_log`. **Sin asignación de plan** (planes diferidos — ADR-0009).
 - [ ] `GET /centers`: lista paginada con búsqueda por nombre, filtro por `active`;
-      incluye conteos útiles (socios, usuarios).
-- [ ] `PUT /centers/{center_uuid}`: nombre y datos de perfil.
+      incluye conteos útiles (socios, usuarios) **calculados en vivo**
+      (subquery/count por request — decisión N-07; si escala a cientos de centros,
+      migrar a columnas materializadas o vista).
+- [ ] `PUT /centers/{center_uuid}`: **solo** nombre y datos del centro
+      (decisión P-10/N-04). El perfil de cada sucursal (`gym_profile`, ligado a
+      `branch_id`) se edita desde la vista de Sucursales (ST-015); `gym_profile`
+      NO se fusiona con `branches`. Deuda temporal permitida: mientras ST-015 no
+      exista, el `PUT` de centro puede tocar el `gym_profile` de la sucursal
+      principal, a retirar cuando llegue ST-015.
 - [ ] `DELETE /centers/{center_uuid}`: desactivación lógica (`active = false`);
       el borrado físico es asíncrono/manual fuera de esta fase.
 - [ ] Al desactivar: los tokens de usuarios del centro dejan de funcionar en el

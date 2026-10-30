@@ -30,16 +30,20 @@ sucursales **para** que cada una opere con su propio personal y caja.
 - [ ] **Solo desactivación lógica**: `active = false`; no existe borrado físico
       (protege la contabilidad histórica — ADR-0010 regla 2).
 - [ ] `users.branch_id INT NULL` + FK + índice (migración): obligatorio para
-      `STAFF`/`REGISTRATION`/quiosco; NULL para `ADMIN`/`CENTER_ADMIN`/
-      `SUPERADMIN`. Validación en `AuthService.signUp` (reglas por rol).
+      `STAFF`/`REGISTRATION`/quiosco; **opcional para `ADMIN`** (decisión P-13: con
+      sucursal queda acotado a ella, sin sucursal abarca el centro); NULL para
+      `CENTER_ADMIN`/`SUPERADMIN`. Validación en `AuthService.signUp` (reglas por
+      rol).
 - [ ] Endpoints bajo `/api/v1/branches` (dentro del centro del token):
       `GET` lista, `POST` crear, `PUT` editar nombre, `DELETE` = desactivar.
       Accesibles para `CENTER_ADMIN` (y `ADMIN` si aplica); superadmin solo
       impersonando.
 - [ ] Vista de Sucursales en el módulo centro (visible para `CENTER_ADMIN`):
       tabla con nombre, UUID, usuarios asignados, activa; alta/edición y
-      desactivación con confirmación. Sección del menú de Configuración o
-      página propia (decidir con el mockup).
+      desactivación con confirmación. La edición incluye el **perfil de la
+      sucursal** (`gym_profile`: nombre, teléfono, dirección, redes), que vive a
+      nivel sucursal y NO se fusiona con `branches` (decisión P-10/N-04). Sección
+      del menú de Configuración o página propia (decidir con el mockup).
 - [ ] El alta de centro (ST-006) crea la **sucursal principal** y su usuario
       quiosco `CHECKIN_<slug>` ligado a ella (rol `REGISTRATION`).
 - [ ] La migración one-shot (ST-014) crea la sucursal principal del centro
@@ -52,5 +56,6 @@ sucursales **para** que cada una opere con su propio personal y caja.
   (`CHECKIN_<centro>`, `CHECKIN_<centro>_<sucursal>`).
 - No exponer `branches.id` en contratos: solo `branch_uuid` (igual que centros).
 - La asignación de un usuario a sucursal se edita desde la vista de Usuarios
-  del centro (selector de sucursal); usuarios `ADMIN`/`CENTER_ADMIN` pueden
-  quedar sin sucursal.
+  del centro (selector de sucursal), disponible también para `ADMIN` (decisión
+  P-13): un `ADMIN` puede quedar acotado a una sucursal o sin sucursal (ámbito
+  centro); `CENTER_ADMIN` siempre sin sucursal.
