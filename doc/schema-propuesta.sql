@@ -11,6 +11,11 @@
 --
 -- Base: schema.sql (esquema actual consolidado V202403121600-V202403121677)
 -- Cambios conforme a ADR-0001 … ADR-0010 (incluye sucursales, ADR-0010).
+--
+-- Tipos de clave: todas las PK/FK internas (incl. centers.id, branches.id,
+-- center_id, branch_id) son BIGINT, consistentes con el código ya mergeado
+-- (V202403121696 crea centers.id BIGINT) y con la nota N-02 de ADR-0010.
+-- Es requisito para las FK compuestas (branch_id, center_id).
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS fitroom
@@ -64,7 +69,7 @@ CREATE TABLE colonias (
 -- ---------------------------------------------------------------------
 
 CREATE TABLE centers (
-    id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    id           BIGINT NOT NULL AUTO_INCREMENT,
     center_uuid  BINARY(16)   NOT NULL,
     name         VARCHAR(255) NOT NULL,
     active       BOOLEAN      NOT NULL DEFAULT TRUE,
@@ -82,9 +87,9 @@ CREATE TABLE centers (
 -- ---------------------------------------------------------------------
 
 CREATE TABLE branches (
-    id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    id           BIGINT NOT NULL AUTO_INCREMENT,
     branch_uuid  BINARY(16)   NOT NULL,
-    center_id    INT UNSIGNED NOT NULL,
+    center_id    BIGINT NOT NULL,
     name         VARCHAR(255) NOT NULL,
     active       BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -116,8 +121,8 @@ CREATE TABLE users (
     username VARCHAR(100) NOT NULL,                    -- [CAMBIO] era VARCHAR(36); ahora es el correo (P-01)
     password VARCHAR(100) NOT NULL,
     user_role VARCHAR(20) NOT NULL,                    -- [CAMBIO] valores: SUPERADMIN|CENTER_ADMIN|ADMIN|STAFF|REGISTRATION (P-06)
-    center_id INT UNSIGNED NULL,                       -- [NUEVO] NULL = superadministrador (ADR-0003)
-    branch_id INT UNSIGNED NULL,                       -- [NUEVO] sucursal del staff (ADR-0010)
+    center_id BIGINT NULL,                       -- [NUEVO] NULL = superadministrador (ADR-0003)
+    branch_id BIGINT NULL,                       -- [NUEVO] sucursal del staff (ADR-0010)
     created_by VARCHAR(100) NOT NULL,                  -- [CAMBIO] era VARCHAR(36)
     enabled BOOLEAN NOT NULL,
     register_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -141,7 +146,7 @@ CREATE TABLE users (
 CREATE TABLE audit_log (
     id BIGINT NOT NULL AUTO_INCREMENT,
     actor_username VARCHAR(100) NOT NULL,   -- superadmin que actúa
-    center_id INT UNSIGNED NULL,            -- centro afectado (NULL si no aplica)
+    center_id BIGINT NULL,            -- centro afectado (NULL si no aplica)
     action VARCHAR(50) NOT NULL,            -- IMPERSONATION_START|END, CENTER_CREATED, CENTER_DISABLED, USER_CREATED, USER_ROLE_CHANGED, ...
     target TEXT,                            -- detalle (JSON) del objetivo de la acción
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -159,7 +164,7 @@ CREATE TABLE audit_log (
 
 CREATE TABLE members (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     name VARCHAR(100) NOT NULL,
     last_names VARCHAR(150) NOT NULL,
     cell_phone VARCHAR(10) NOT NULL,
@@ -193,7 +198,7 @@ CREATE TABLE members (
 
 CREATE TABLE membership_config (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     days_number INT NOT NULL,
     type VARCHAR(20) NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
@@ -207,7 +212,7 @@ CREATE TABLE membership_config (
 
 CREATE TABLE rates (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     days_number INT NOT NULL,
     concept VARCHAR(150) NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
@@ -229,7 +234,7 @@ ALTER TABLE membership_config
 
 CREATE TABLE rates_table_history (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     value_changed VARCHAR(150) NOT NULL,
     rate_id INT NOT NULL,
     username VARCHAR(100) NOT NULL,
@@ -242,7 +247,7 @@ CREATE TABLE rates_table_history (
 
 CREATE TABLE rate_allowed_methods (
     rate_id INT NOT NULL,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     payment_method VARCHAR(50) NOT NULL,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -261,8 +266,8 @@ CREATE TABLE rate_allowed_methods (
 
 CREATE TABLE work_shifts (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
-    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] caja por sucursal; máx. 1 turno abierto por sucursal (ADR-0010)
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
+    branch_id BIGINT NOT NULL,                     -- [NUEVO] caja por sucursal; máx. 1 turno abierto por sucursal (ADR-0010)
     start_date TIMESTAMP NOT NULL,
     end_date TIMESTAMP,
     entry_amount DECIMAL(10,2) NOT NULL,
@@ -284,8 +289,8 @@ CREATE TABLE work_shifts (
 
 CREATE TABLE work_shifts_notes (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
-    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal del turno (ADR-0010)
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
+    branch_id BIGINT NOT NULL,                     -- [NUEVO] sucursal del turno (ADR-0010)
     work_shift_id INT NOT NULL,
     username VARCHAR(100) NOT NULL,
     register_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -301,8 +306,8 @@ CREATE TABLE work_shifts_notes (
 
 CREATE TABLE debit_transactions (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
-    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal del turno donde nace el dinero (ADR-0010, inmutable)
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
+    branch_id BIGINT NOT NULL,                     -- [NUEVO] sucursal del turno donde nace el dinero (ADR-0010, inmutable)
     concept VARCHAR(255) NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
@@ -323,8 +328,8 @@ CREATE TABLE debit_transactions (
 
 CREATE TABLE cancellations (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
-    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal de la transacción cancelada
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
+    branch_id BIGINT NOT NULL,                     -- [NUEVO] sucursal de la transacción cancelada
     debit_transaction_id INT NOT NULL UNIQUE,
     cancellation_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     reason TEXT,
@@ -344,7 +349,7 @@ CREATE TABLE cancellations (
 
 CREATE TABLE member_membership (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     member_id INT NOT NULL,
     debit_transaction_id INT NOT NULL,
     membership_config_id INT NOT NULL,
@@ -362,7 +367,7 @@ CREATE TABLE member_membership (
 
 CREATE TABLE subscriptions (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     member_id INT NOT NULL,
     debit_transaction_id INT NOT NULL,
     member_membership_id INT,
@@ -383,8 +388,8 @@ CREATE TABLE subscriptions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE subscription_history (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     subscription_id INT NOT NULL,
     description VARCHAR(250) NOT NULL,
     notes VARCHAR(250),
@@ -400,7 +405,7 @@ CREATE TABLE subscription_history (
 
 CREATE TABLE courtesies (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     member_id INT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -419,7 +424,7 @@ CREATE TABLE courtesies (
 
 CREATE TABLE courtesy_history (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     description VARCHAR(300) NOT NULL,
     courtesy_id INT NOT NULL,
     username VARCHAR(100) NOT NULL,
@@ -441,8 +446,8 @@ CREATE TABLE courtesy_history (
 
 CREATE TABLE check_in (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
-    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal donde se registró la entrada (socio es del centro, ADR-0010)
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
+    branch_id BIGINT NOT NULL,                     -- [NUEVO] sucursal donde se registró la entrada (socio es del centro, ADR-0010)
     member_id INT NOT NULL,
     register_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     username VARCHAR(100) NOT NULL,
@@ -459,8 +464,8 @@ CREATE TABLE check_in (
 
 CREATE TABLE check_out (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
-    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] misma sucursal del check-in
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
+    branch_id BIGINT NOT NULL,                     -- [NUEVO] misma sucursal del check-in
     check_in_id INT NOT NULL,
     register_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     username VARCHAR(100) NOT NULL,
@@ -475,7 +480,7 @@ CREATE TABLE check_out (
 
 CREATE TABLE checkin_subscription (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     checkin_id INT NOT NULL,
     subscription_id INT NOT NULL,
     PRIMARY KEY (id),
@@ -488,7 +493,7 @@ CREATE TABLE checkin_subscription (
 
 CREATE TABLE checkin_courtesy (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     checkin_id INT NOT NULL,
     courtesy_id INT NOT NULL,
     PRIMARY KEY (id),
@@ -500,8 +505,8 @@ CREATE TABLE checkin_courtesy (
 
 CREATE TABLE invalid_check_ins (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO] el intento se registra en el centro donde ocurrió
-    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal donde ocurrió el intento
+    center_id BIGINT NOT NULL,                     -- [NUEVO] el intento se registra en el centro donde ocurrió
+    branch_id BIGINT NOT NULL,                     -- [NUEVO] sucursal donde ocurrió el intento
     input_value VARCHAR(255),
     username VARCHAR(100),
     register_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -519,7 +524,7 @@ CREATE TABLE invalid_check_ins (
 
 CREATE TABLE articles (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO] catálogo del centro (precio único; override por sucursal = fase posterior)
+    center_id BIGINT NOT NULL,                     -- [NUEVO] catálogo del centro (precio único; override por sucursal = fase posterior)
     name VARCHAR(255) NOT NULL,
     description TEXT,
     sale_price DECIMAL(10,2) NOT NULL,
@@ -539,7 +544,7 @@ CREATE TABLE articles (
 -- de la operación. Sustituye a articles.stock como fuente de verdad.
 CREATE TABLE branch_stock (
     id INT NOT NULL AUTO_INCREMENT,
-    branch_id INT UNSIGNED NOT NULL,
+    branch_id BIGINT NOT NULL,
     article_id INT NOT NULL,
     quantity INT NOT NULL DEFAULT 0,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -551,8 +556,8 @@ CREATE TABLE branch_stock (
 
 CREATE TABLE inventory (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
-    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] movimiento de inventario de esta sucursal
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
+    branch_id BIGINT NOT NULL,                     -- [NUEVO] movimiento de inventario de esta sucursal
     type VARCHAR(50) NOT NULL,
     article_id INT NOT NULL,
     previous_quantity INT NOT NULL,
@@ -570,8 +575,8 @@ CREATE TABLE inventory (
 
 CREATE TABLE sale (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
-    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal donde ocurrió la venta
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
+    branch_id BIGINT NOT NULL,                     -- [NUEVO] sucursal donde ocurrió la venta
     member_id INT NOT NULL,
     is_pending_payment BOOLEAN,
     is_cancelled BOOLEAN,
@@ -588,7 +593,7 @@ CREATE TABLE sale (
 
 CREATE TABLE sales_articles (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     article_id INT NOT NULL,
     quantity INT NOT NULL,
     unit_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
@@ -605,8 +610,8 @@ CREATE TABLE sales_articles (
 
 CREATE TABLE sales_details (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
-    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal de la venta/transacción
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
+    branch_id BIGINT NOT NULL,                     -- [NUEVO] sucursal de la venta/transacción
     debit_transaction_id INT NOT NULL,
     sale_id INT NOT NULL,
     PRIMARY KEY (id),
@@ -620,8 +625,8 @@ CREATE TABLE sales_details (
 
 CREATE TABLE purchase (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
-    branch_id INT UNSIGNED NOT NULL,                     -- [NUEVO] sucursal que recibe la compra
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
+    branch_id BIGINT NOT NULL,                     -- [NUEVO] sucursal que recibe la compra
     supplier TEXT,
     username VARCHAR(100),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -635,7 +640,7 @@ CREATE TABLE purchase (
 
 CREATE TABLE purchase_details (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     article_id INT NOT NULL,
     purchase_id INT NOT NULL,
     quantity INT NOT NULL,
@@ -658,7 +663,7 @@ CREATE TABLE purchase_details (
 
 CREATE TABLE gym_profile (
     id INT NOT NULL AUTO_INCREMENT,
-    branch_id INT UNSIGNED NOT NULL,                     -- [CAMBIO] era center_id; pasa a sucursal física (ADR-0010): nombre, teléfono, dirección y redes varían por ubicación
+    branch_id BIGINT NOT NULL,                     -- [CAMBIO] era center_id; pasa a sucursal física (ADR-0010): nombre, teléfono, dirección y redes varían por ubicación
     name VARCHAR(255) NOT NULL,
     phone_number VARCHAR(20),
     email VARCHAR(255),
@@ -680,8 +685,8 @@ CREATE TABLE gym_profile (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE gym_config (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     name VARCHAR(100) NOT NULL,
     type VARCHAR(100) NOT NULL,
     is_enabled BOOLEAN DEFAULT FALSE,
@@ -694,8 +699,8 @@ CREATE TABLE gym_config (
 
 CREATE TABLE gym_config_history (
     id INT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
-    gym_config_id INT UNSIGNED NOT NULL,
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
+    gym_config_id BIGINT NOT NULL,
     description VARCHAR(255) NOT NULL,
     username VARCHAR(100) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -712,7 +717,7 @@ CREATE TABLE gym_config_history (
 
 CREATE TABLE member_fingerprint_templates (
     id BIGINT NOT NULL AUTO_INCREMENT,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     member_id INT NOT NULL,
     template BLOB NOT NULL,
     created_by VARCHAR(100),
@@ -725,7 +730,7 @@ CREATE TABLE member_fingerprint_templates (
 
 CREATE TABLE member_status (
     member_id INT NOT NULL,
-    center_id INT UNSIGNED NOT NULL,                     -- [NUEVO]
+    center_id BIGINT NOT NULL,                     -- [NUEVO]
     status VARCHAR(50) NOT NULL,
     type VARCHAR(50) NOT NULL,
     entity_id INT,
