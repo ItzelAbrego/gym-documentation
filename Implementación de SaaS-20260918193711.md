@@ -18,31 +18,63 @@ Esta parte del sistema usará estas tablas:
 | name | String |  |
 | active | Booleano |  |
 
-**Sucursales**
+**Sucursales (branches)**
+
+> **Actualización (ADR-0010, 2026-09-21):** las sucursales **dejaron de estar pospuestas**.
+> El ADR-0008 original las difería, pero al preparar la propuesta al cliente se decidió
+> **diseñarlas e implementarlas desde el inicio**, por el requisito de **contabilidad exacta
+> y separada por sucursal**. El modelo completo vive en
+> [ADR-0010](doc/adr/ADR-0010-sucursales-contabilidad-aislada.md) y en las stories
+> [ST-015](doc/stories/ST-015-tabla-branches-y-admin.md) y
+> [ST-016](doc/stories/ST-016-scoping-por-sucursal.md). El DDL objetivo está en
+> `doc/schema-propuesta.sql`.
 
 | Nombre | Tipo | Notas |
 | ---| ---| --- |
-| ID | UUID (binario) |  |
-| Nombre | String |  |
+| id | BIGINT | PK/FK interna (auto-increment), mismo tipo que `centers.id`. |
+| branch_uuid | BINARY(16) | Identificador externo (API); nunca se expone `id`. |
+| center_id | BIGINT | FK a `centers`. 1 centro : N sucursales. |
+| name | String |  |
+| active | Booleano | Solo desactivación lógica; **nunca** borrado físico (protege contabilidad histórica). |
 
-*   Datos financieros no pueden estar directamente ligados a sucursales. Si son eliminadas, estos deben permanecer por motivos de auditoría y demás utilidad para los clientes.
-    Por ahora las sucursales no serán consideradas y ningún dato será ligado directamente a ellas debido a la posibilidad de eliminado o volatilidad que pudiese afectar funcionamiento. Solo se relacionarán las entidades que sean estricc. _A need to be related basis_.
+Jerarquía: **Superadmin → Centro → Sucursal → datos operativos**. El **centro sigue siendo
+el límite del tenant** (claim `center_uuid`); la sucursal es una **sub-división interna** del
+centro, nunca un tenant nuevo.
+
+**Qué se liga a sucursal vs a centro (ADR-0010):**
+
+*   **A nivel sucursal (`branch_id` NOT NULL)** — dinero y operación física: `work_shifts`,
+    `work_shifts_notes`, `debit_transactions`, `cancellations`, `sale`, `sales_details`,
+    `purchase`, `inventory`, `check_in`, `check_out`, `invalid_check_ins`, y la nueva tabla
+    `branch_stock`. Cada peso cobrado y cada movimiento de stock queda marcado con su sucursal.
+*   **A nivel centro (`center_id`, sin `branch_id`)** — el socio y sus beneficios siguen siendo
+    del centro: `members`, `subscriptions`, `member_membership`, `courtesies`, `member_status`,
+    `member_fingerprint_templates`. También los catálogos: `rates`, `membership_config`,
+    `rate_allowed_methods`, catálogo de `articles`, y `gym_config`.
+*   **Caso mixto:** `gym_profile` **baja a nivel sucursal** (cada ubicación tiene su nombre,
+    teléfono, dirección y redes); `gym_config` se queda a nivel centro.
+
+**Invariante contable (anti-mezcla):** toda tabla con `center_id` + `branch_id` referencia la
+sucursal con FK compuesta `FOREIGN KEY (branch_id, center_id) REFERENCES branches(id, center_id)`
+(requiere `UNIQUE KEY (id, center_id)` en `branches`). Así una fila nunca puede quedar ligada a
+la sucursal de otro centro.
+
 ### Decisiones
 *   ¿Se necesita un ID númerico? ¿Por motivos de indexado y fácil relación?
     
-    Sí. `id` INT auto-increment como PK y FK interna (joins e indexado baratos) + `center_uuid` BINARY(16) solo para integraciones externas.
+    Sí. `id` **BIGINT** auto-increment como PK y FK interna (joins e indexado baratos) + `center_uuid` BINARY(16) solo para integraciones externas. Mismo criterio para `branches` (`id` BIGINT + `branch_uuid`).
 *   ¿Qué tan difícil es tener que las configuraciones apunten a la tabla de Centros y más tarde se cambien a Sucursales?
     
-    De bajo costo: es renombrar/mover la FK. Se agrega `center_id` a `gym_config` y `gym_profile` desde el inicio y se difiere el cambio a Sucursal.
+    Resuelto por diseño: ya no se difiere. `gym_config` queda a nivel centro y `gym_profile` a nivel sucursal desde el inicio (ADR-0010 regla 10). La cascada de configuraciones centro → sucursal y los precios por sucursal sí quedan como fase posterior.
 *   ¿Sería mejor crear una tabla separada por sucursales más adelante y que la existente sean configuraciones heredables?
     
-    No se diseña heredabilidad por sucursal ahora. Las sucursales quedan pospuestas.
+    Las sucursales se crean **ya** (tabla `branches`). La heredabilidad/override de configuraciones por sucursal se difiere a fase posterior.
 *   ¿Necesitamos un centro para definir a los superadministradores?
     
-    No. `users.center_id` es nullable; `NULL` = superadministrador. Sin centro "fantasma".
+    No. `users.center_id` es nullable; `NULL` = superadministrador. Sin centro "fantasma". `users.branch_id` también es nullable: obligatorio para `STAFF`/`REGISTRATION`/quiosco, opcional para `ADMIN` (decisión P-13), NULL para `CENTER_ADMIN`/`SUPERADMIN`.
 *   ¿A caso debemos relacionar algo directamente a las sucursales?
     
-    No por ahora. Nada se liga directamente a Sucursales (criterio _strict need_).
+    Sí: dinero y operación física (ver lista arriba). Los datos financieros se ligan a sucursal **y permanecen** aunque la sucursal se desactive, porque las sucursales solo se desactivan lógicamente, nunca se borran — con eso se satisface a la vez la contabilidad por sucursal y la regla de permanencia histórica del doc base.
 ## Roles
 Estos son los roles identificados:
 *   Administrador
@@ -130,7 +162,7 @@ Cosas a considerar al crear un nuevo centro:
 *   **audit_log**: registro de auditoría para impersonación y acciones de superadmin (superadmin, centro, acción, timestamp).
 *   **plans / center_plans** (fase posterior de planes): catálogo de planes y su asignación por centro.
 #### Nota sobre gym_profile
-`gym_profile` es candidata a fundirse con la tabla `centers` (el perfil del gym es, en esencia, los datos del centro) o a quedar como su extensión ligada por `center_id`. Se decide al implementar.
+`gym_profile` pasa a vivir **a nivel sucursal** (`branch_id`), no a nivel centro: cada ubicación física tiene su propio nombre, teléfono, dirección y redes (ADR-0010 regla 10). No se fusiona con `branches` (se mantiene como tabla propia ligada por `branch_id`). `gym_config` sí permanece a nivel centro.
 #### Preguntas
 *   ¿Un superadministrador puede editar a otro superadministrador?
     
@@ -174,31 +206,52 @@ Vistas actuales:
 - [x] Definir cambios sobre autenticación.
 - [x] Definir cambios sobre autorización.
 
-## Tablas que se relacionan con Centro
-Se agrega `center_id` (FK a `centers`) a las siguientes tablas de `schema.sql`:
+## Tablas que se relacionan con Centro y con Sucursal
+Scoping en dos niveles (ADR-0010). El **centro** (`center_id`) es el límite del tenant; la
+**sucursal** (`branch_id`) marca dónde ocurre el dinero y la operación física.
+
+**Llevan `center_id` (FK a `centers`):**
 
 | Grupo | Tablas |
 | --- | --- |
-| Acceso y roles | `users` (nullable, ver superadmins), `gym_profile`, `gym_config`, `gym_config_history` |
+| Acceso y roles | `users` (nullable, ver superadmins; además `branch_id` nullable), `gym_config`, `gym_config_history` |
 | Socios | `members`, `member_fingerprint_templates`, `member_status` |
-| Catálogos y tarifas | `membership_config`, `rates`, `rates_table_history`, `rate_allowed_methods` |
-| Turnos y dinero | `work_shifts`, `work_shifts_notes`, `debit_transactions`, `cancellations` |
+| Catálogos y tarifas | `membership_config`, `rates`, `rates_table_history`, `rate_allowed_methods`, `articles` (catálogo) |
 | Suscripciones | `member_membership`, `subscriptions`, `subscription_history`, `courtesies`, `courtesy_history` |
-| Check-in | `check_in`, `check_out`, `checkin_subscription`, `checkin_courtesy`, `invalid_check_ins` |
-| Ventas e inventario | `articles`, `inventory`, `sale`, `sales_articles`, `sales_details`, `purchase`, `purchase_details` |
+| Turnos y dinero | `work_shifts`, `work_shifts_notes`, `debit_transactions`, `cancellations` |
+| Check-in | `check_in`, `check_out`, `invalid_check_ins` |
+| Ventas e inventario | `inventory`, `sale`, `sales_details`, `purchase` |
+
+**Llevan además `branch_id` NOT NULL (dinero/operación física — FK compuesta a `branches(id, center_id)`):**
+
+| Grupo | Tablas |
+| --- | --- |
+| Turnos y dinero | `work_shifts`, `work_shifts_notes`, `debit_transactions`, `cancellations` |
+| Check-in | `check_in`, `check_out`, `invalid_check_ins` |
+| Ventas e inventario | `sale`, `sales_details`, `purchase`, `inventory`, y la nueva `branch_stock` |
+
+**Cambio de nivel:** `gym_profile` pasa de `center_id` a `branch_id` (perfil por ubicación física).
+
+**Solo `branch_id` indirecto (heredan de su padre, sin columna propia):** `sales_articles`,
+`purchase_details`, `checkin_subscription`, `checkin_courtesy`.
 
 No se tocan (catálogos globales compartidos entre centros): `states`, `cities`, `colonias`.
 
+> Nota: `articles.stock` **se elimina del dominio**; el stock pasa a `branch_stock`
+> (`branch_id`, `article_id`, `quantity`) como única fuente de verdad por sucursal (ADR-0010, N-08).
+
 ## Flujo de relación de entidades
-1. **Centro** es la raíz: todo registro operativo recibe `center_id` directamente de `centers`.
-2. Desde el centro se derivan: `users` (staff del centro), `members` (socios), configuraciones (`gym_config`, `gym_profile`) y catálogos (`rates`, `membership_config`, `articles`).
-3. Las transacciones se encadenan dentro del centro: `work_shifts` → `debit_transactions` → `member_membership` / `subscriptions` / `sale` / `cancellations` → `check_in` / `check_out` / `courtesies`.
-4. Las tablas de detalle e historial (`*_history`, `*_details`, `*_notes`, tablas de unión check-in) heredan el `center_id` de su tabla padre o lo llevan propio, según coste de consulta.
+1. **Centro** es la raíz del tenant: todo registro operativo recibe `center_id` directamente de `centers`.
+2. **Sucursal** es sub-división del centro: las tablas de dinero y operación física reciben además `branch_id` (FK compuesta con `center_id` para impedir mezclas entre centros).
+3. Desde el centro se derivan: `users` (staff, con `branch_id` opcional/obligatorio según rol), `members` (socios del centro), configuraciones (`gym_config` por centro, `gym_profile` por sucursal) y catálogos (`rates`, `membership_config`, `articles`).
+4. Las transacciones se encadenan dentro de la sucursal: `work_shifts` (branch) → `debit_transactions` (branch) → `member_membership` / `subscriptions` (centro) / `sale` (branch) / `cancellations` (branch) → `check_in` / `check_out` (branch) / `courtesies` (centro). El beneficio es del centro; el dinero que lo originó vive en la sucursal donde se cobró.
+5. Las tablas de detalle e historial (`*_history`, `*_details`, `*_notes`, tablas de unión check-in) heredan `center_id`/`branch_id` de su tabla padre o lo llevan propio, según coste de consulta.
 ## Autenticación
 *   Todos los usuarios iniciarán sesión como lo hacen actualmente.
 *   Cada usuario (no superadministrador) está relacionado únicamente a un solo centro.
 *   La respuesta del endpoint de autenticación incluye el UUID de organización para referencia del frontend.
 *   Decisión: el UUID viaja como **claim del JWT**; el filtro que valida el token lo extrae y lo pasa como propiedad a cada endpoint. El frontend no envía el UUID en peticiones — una sola fuente de verdad, no manipulable desde el cliente.
+*   El staff asignado a una sucursal lleva además el claim `branch_uuid` (ADR-0010); el filtro lo expone como contexto de operación. `CENTER_ADMIN`/`SUPERADMIN` y `ADMIN` sin sucursal no lo llevan.
 *   Los superadministradores reciben el token sin claim de centro.
 ### Decisiones
 *   Revisar casos de uso de turnos para evitar problemas con que usuarios hagan modificaciones fuera de instalaciones.
@@ -235,15 +288,15 @@ No se tocan (catálogos globales compartidos entre centros): `states`, `cities`,
     
 *   ¿Qué pasos preliminares deben considerarse?
     
-    Backup completo de la base original; inventario de tablas a alterar (ver lista en "Tablas que se relacionan con Centro"); aplicar los cambios de unique keys de `members` (teléfono y correo por centro); aplicar el esquema nuevo (Flyway) antes de correr el script.
+    Backup completo de la base original; inventario de tablas a alterar (ver lista en "Tablas que se relacionan con Centro y con Sucursal"); aplicar los cambios de unique keys de `members` (teléfono y correo por centro); aplicar el esquema nuevo (Flyway, incluyendo `branches` y `branch_stock`) antes de correr el script.
     
 *   ¿Cómo se relacionarán los datos a un centro?
     
-    El script asigna el `center_id` del centro creado a todas las filas de las tablas listadas, en el orden del flujo de entidades.
+    El script asigna el `center_id` del centro creado a todas las filas de las tablas listadas, en el orden del flujo de entidades. Para las tablas de dinero/operación, además asigna el `branch_id` de la **sucursal principal** creada para ese centro.
     
 *   ¿Cómo se crea un nuevo centro al iniciar la migración?
     
-    El script crea el centro tomando el nombre de `gym_profile` de la base original y liga `gym_profile`/`gym_config` a ese centro.
+    El script crea el centro tomando el nombre de `gym_profile` de la base original, crea su **sucursal principal** (a la que apunta todo `branch_id` histórico) y liga `gym_config` al centro y `gym_profile` a la sucursal principal. Traslada los saldos de `articles.stock` a `branch_stock` de la sucursal principal.
     
 *   ¿Si se interrumpe una migración como se reanuda?
     
@@ -263,25 +316,29 @@ Esta lista está sujeta a cambio. Hasta que los tickets no sean escritos, pueden
 
 ### Principal
 Cambios de lo que de dependerá todo lo demás.
-*   Crear tabla `centers` (id numérico + center_uuid).
-*   Agregar `users.center_id` nullable (NULL = superadmin); migrar rol Billing → `CENTER_ADMIN`.
+*   Crear tabla `centers` (id BIGINT + center_uuid).
+*   Crear tabla `branches` (id BIGINT + branch_uuid, `center_id` NOT NULL, 1 centro : N sucursales; solo desactivación lógica) — ST-015.
+*   Agregar `users.center_id` nullable (NULL = superadmin) y `users.branch_id` nullable (por rol); migrar rol Billing → `CENTER_ADMIN`.
 *   Crear tabla `audit_log`.
 *   Cambiar unique keys de `members`: `(center_id, cell_phone)` y `(center_id, email)`.
-*   Agregar `center_id` a todas las tablas del mapeo (ver "Tablas que se relacionan con Centro").
-*   Actualizar proceso de inicialización (Flyway/seed) para considerar el centro y sus datos base.
+*   Agregar `center_id` a todas las tablas del mapeo, y `branch_id` NOT NULL (FK compuesta a `branches(id, center_id)`) a las tablas de dinero/operación — ver "Tablas que se relacionan con Centro y con Sucursal" (ST-004, ST-016).
+*   Crear tabla `branch_stock` y retirar `articles.stock` del dominio — ST-016.
+*   Actualizar proceso de inicialización (Flyway/seed) para considerar el centro, su sucursal principal y sus datos base.
 ### Superadministrador
 *   Crear entidad, repository y método para obtener todos los centros
 *   Crear endpoint para obtener todos los centros
 *   Crear método de servicio para crear nuevo centro
     *   Consideración: debe tener un usuario a ligar
+    *   Consideración: crea también la sucursal principal y su usuario quiosco
 *   Crear endpoint para crear nuevo centro
     *   Consideración: petición debe tener información de nuevo usuario
 *   Vistas superadmin: Centros (CRUD, activar/desactivar, entrar al centro) y Usuarios (todos con filtros)
 *   Impersonación de centro con rol temporal, banner y auditoría
 *   Activar/desactivar centros (borrado lógico + físico asíncrono)
+*   Administración de sucursales del centro (CRUD + desactivación lógica) — ST-015
 ### Adaptación de funcionalidades
-*   Emitir claim `center_uuid` en el JWT; extraerlo en el filtro y pasarlo a los endpoints
-*   Scopes/validación por centro en cada endpoint existente
-*   Flujo de aprobación de turnos (apertura/cierre con desfase) hacia `center_admin`
+*   Emitir claim `center_uuid` (y `branch_uuid` para staff con sucursal) en el JWT; extraerlo en el filtro y pasarlo a los endpoints
+*   Scopes/validación por centro en cada endpoint existente; scoping por sucursal en dinero/operación (ST-016)
+*   Flujo de aprobación de turnos (apertura/cierre con desfase) hacia `center_admin`, evaluando el horario de la sucursal del turno
 ### Migración
-*   Script Python one-shot sobre backup: crear centro, asignar `center_id`, ajustar unique keys, conteos finales antes/después
+*   Script Python one-shot sobre backup: crear centro + sucursal principal, asignar `center_id`/`branch_id`, trasladar stock a `branch_stock`, ajustar unique keys, conteos finales antes/después
