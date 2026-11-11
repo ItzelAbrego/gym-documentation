@@ -26,7 +26,7 @@ CREATE TABLE centers (
 ```
 
 > **Reconciliación con el código (2026-10-21, decisión N-02)**: la implementación
-> real (`V202403121689__create_centers_table.sql` + entidad JPA `Center.id = Long`)
+> real (`V202403121699__create_centers_table.sql` + entidad JPA `Center.id = Long`)
 > usó **`BIGINT`**, no `INT UNSIGNED`. Este ADR se actualiza al tipo real: el tipo
 > consistente del codebase para `centers.id` y todas sus FK entrantes
 > (`users.center_id`, `audit_log.center_id`, y las de ST-004) es **`BIGINT`**. Una

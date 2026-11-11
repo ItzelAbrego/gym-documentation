@@ -1,6 +1,15 @@
 # ADR-0007: Migración de datos — script Python one-shot sobre backup
 
-**Estado**: Aceptada · **Fecha**: 2026-09-21
+**Estado**: Histórica — reemplazada por [ADR-0013](ADR-0013-instancia-saas-nueva-en-lugar-de-conversion-en-sitio.md) y [ADR-0015](ADR-0015-migrador-desde-dump-congelado-restaurable-y-verificado.md) · **Fecha**: 2026-09-21
+
+> **Nota (2026-11-05)**: esta ADR se conserva como referencia histórica y **no es
+> vigente**. Cuatro de sus premisas cambiaron: ya no hay base de trabajo que se
+> convierta en la base del centro (ADR-0013 decide una instancia SaaS nueva y
+> compartida), Flyway no corre sobre el dump porque el destino nace con el esquema
+> completo, la decisión de "sin pruebas automatizadas" se revirtió por once chequeos
+> bloqueantes, y el script dejó de ser desechable. Lo que **sí sigue vigente** de este
+> documento son sus pasos 1 y 2: el migrador crea el centro desde `gym_profile`, genera
+> el `center_uuid`, y crea la sucursal principal y su usuario quiosco.
 
 ## Contexto
 

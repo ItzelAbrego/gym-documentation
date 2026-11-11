@@ -50,6 +50,26 @@ si son eliminadas, deben permanecer"), pero ambas se satisfacen a la vez:
    `subscriptions`, `member_membership`, `courtesies`, `member_status`,
    `member_fingerprint_templates`: el beneficio es del centro; el dinero que lo
    originó vive en la `debit_transaction` de la sucursal donde se cobró.
+
+   > **REVERTIDA (2026-11-11, decisión N-11)**: la implementación hizo lo
+   > contrario y es la que vale. `V202403121705` (ST-015) agregó `branch_id` a
+   > `members`, `subscriptions`, `courtesies`, `rates` y `articles`, y
+   > `V202403121706` (ST-016) reemplazó las unique keys de socio por
+   > `UNIQUE (center_id, branch_id, cell_phone)` y
+   > `UNIQUE (center_id, branch_id, email)`. Su propio comentario lo dice: *"A
+   > member's phone and email are now unique within the same branch of the same
+   > center."*
+   >
+   > **El socio es de la sucursal, no del centro.** Consecuencia de producto que
+   > hay que asumir a propósito: cuando un centro abra una segunda sucursal, la
+   > misma persona tendrá que registrarse otra vez ahí. Es justo el costo que
+   > esta ADR había listado para rechazar la opción (ver Alternativas).
+   >
+   > **Hueco abierto mientras `branch_id` sea nullable**: en MySQL un índice
+   > UNIQUE cuyo tuple contiene NULL admite filas duplicadas sin límite. Una fila
+   > de socio sin sucursal no sólo queda sin ámbito: **no tiene protección contra
+   > duplicados en absoluto**, y la base no se queja. El backfill de ST-014 es lo
+   > que cierra ese hueco.
 5. **Staff por sucursal**: `users.branch_id` NULL permitido; los roles
    `STAFF`, `REGISTRATION` (incl. usuarios quiosco) **requieren** sucursal;
    **`ADMIN` puede llevar `branch_id` de forma opcional** (decisión P-13: con
@@ -72,6 +92,20 @@ si son eliminadas, deben permanecer"), pero ambas se satisfacen a la vez:
    movimientos de `inventory` llevan `branch_id`. Ventas descuentan el stock de
    la sucursal donde ocurren. Todas las ubicaciones de una venta/compra caen en
    la sucursal de la operación.
+
+   > **EN CONFLICTO CON EL CÓDIGO (2026-11-11, pregunta P-14 abierta)**:
+   > `branch_stock` **no existe en ninguna migración**. `V202403121705` resolvió
+   > el stock por sucursal de otra forma: le puso `branch_id` a `articles` y a
+   > `inventory`. Son dos diseños distintos, no un retraso:
+   >
+   > - Esta ADR: catálogo de artículos del centro (precio único) + saldo por
+   >   sucursal en una tabla aparte.
+   > - El código: el artículo **mismo** es de la sucursal, lo que duplica el
+   >   catálogo por sucursal y contradice "precio único" de esta misma regla.
+   >
+   > Hay que elegir uno. Mientras no se elija, el chequeo de stock del migrador
+   > (C06 de ADR-0015) no se puede escribir, porque no se sabe contra qué
+   > comparar.
 8. **JWT con claim de sucursal** (extensión de ADR-0004): usuarios con sucursal
    llevan `branch_uuid` además de `center_uuid` (incluye un `ADMIN` acotado a
    sucursal — decisión P-13); el filtro los expone como contexto. Staff —y
@@ -116,6 +150,12 @@ si son eliminadas, deben permanecer"), pero ambas se satisfacen a la vez:
 
 - **Socios por sucursal**: duplica fichas de la misma persona y rompe la
   unicidad por centro ya decidida (ADR-0005).
+
+  > **Esta alternativa es la que ganó** (2026-11-11, N-11). `V202403121706` la
+  > implementó. El costo que aquí se le atribuyó —duplicar la ficha de la misma
+  > persona en cada sucursal— sigue siendo real y ahora es el comportamiento
+  > aceptado, no un riesgo evitado. La "unicidad por centro de ADR-0005" también
+  > cambió: ver la nota de reconciliación en esa ADR.
 - **Staff flotante entre sucursales**: flexible, pero permite operar cajas
   "ajenas" y difumina dónde ocurrió cada cobro.
 - **Todo el catálogo por sucursal**: aislamiento total pero duplica tarifas y
