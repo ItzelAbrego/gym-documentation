@@ -393,6 +393,107 @@ directamente su sucursal sin necesidad de seleccionarla.
 
 ---
 
+### N-11 — El socio pasó a ser de la sucursal, no del centro (V706)
+
+**Hallazgo (2026-11-11)**: `V202403121706` (ST-016) reemplazó las unique keys de
+socio por `(center_id, branch_id, cell_phone)` y `(center_id, branch_id, email)`.
+Su comentario lo dice: *"A member's phone and email are now unique within the same
+branch of the same center."* Eso contradice la regla 4 de **ADR-0010** ("socios
+son del centro") y la decisión 1 de **ADR-0005** ("unique keys compuestas por
+centro"), y es exactamente la alternativa que ADR-0010 había **rechazado**
+("socios por sucursal: duplica fichas de la misma persona").
+
+**Respuesta**: ☑ **El código manda; las ADRs se corrigen.** Confirmado por el
+developer: "la migración V706 está bien, lo que está en el branch está bien".
+Consecuencia de producto asumida a propósito: cuando un centro abra una segunda
+sucursal, la misma persona tendrá que registrarse otra vez ahí.
+
+**Acciones**: notas de reconciliación en ADR-0005 y ADR-0010 (hechas).
+**Pendiente de código**: `findByCenterIdAndCellPhone` devolvería varias filas en
+un centro con dos sucursales; tiene que pasar a teléfono + centro + sucursal, y el
+check-in resolverlo con el `branch_uuid` del token.
+
+**Hueco abierto mientras `branch_id` sea nullable**: en MySQL un índice UNIQUE
+cuyo tuple contiene NULL admite filas duplicadas sin límite. Una fila de socio sin
+sucursal no queda sólo sin ámbito: **no tiene protección contra duplicados en
+absoluto**. El backfill de ST-014 es lo que cierra ese hueco.
+
+---
+
+### P-14 — `branch_stock` o `branch_id` en `articles`: hay que elegir
+
+**Hallazgo**: `branch_stock` **no existe en ninguna migración**. La regla 7 de
+ADR-0010 y la nota N-08 la decidieron como única fuente de verdad del stock;
+`V202403121705` resolvió el problema de otra forma, poniéndole `branch_id` a
+`articles` y a `inventory`.
+
+No es un retraso, son dos diseños distintos:
+
+| | ADR-0010 regla 7 | V202403121705 |
+| --- | --- | --- |
+| Catálogo de artículos | del **centro**, precio único | de la **sucursal** |
+| Saldo de stock | tabla aparte `branch_stock` | implícito en `inventory` por sucursal |
+| Abrir una sucursal | no duplica el catálogo | duplica el catálogo |
+
+La segunda contradice "precio único" de la propia regla 7.
+
+**Estado**: ☐ **abierta**. Bloquea el chequeo de stock del migrador (C06 de
+ADR-0015): no se sabe contra qué comparar.
+
+---
+
+### P-15 — Qué hacer con las filas que la instancia nueva trae sembradas
+
+**Hallazgo**: una instancia SaaS recién creada **no está vacía**. Correr la cadena
+de Flyway deja `CHECKIN_GYM` (de `V202403121631__insert_checkin_gym.sql`) y los
+socios internos, todos con `center_id = NULL`. Verificado corriendo las
+migraciones en un destino limpio.
+
+Dos consecuencias: como P-01 dejó `username` único global y toda instalación trae
+`CHECKIN_GYM`, **la colisión ocurre con el primer gimnasio migrado**; y esas filas
+no tienen protección contra duplicados, porque un UNIQUE con NULL en el tuple
+admite duplicados.
+
+**Parcialmente resuelto**: la colisión del quiosco la cierra el migrador aplicando
+el patrón de P-04 (`CHECKIN_<slug>`), sin inventar política. Las colisiones de
+correos de login se rechazan y la corrida aborta antes de escribir.
+
+**Estado**: ☐ **abierta** para las filas sembradas en sí. Tres candidatas:
+adoptarlas en el primer centro migrado, borrarlas de la instancia nueva antes de
+migrar, o que las migraciones dejen de sembrarlas cuando el modelo de tenant ya
+existe. Mientras no se decida, el chequeo `C12-orphan-seed-rows` las reporta en
+cada corrida como advertencia, para que no se olviden.
+
+---
+
+### P-16 — Runbook de la corrida real
+
+**Estado**: ☐ **abierta por decisión explícita** — "se agregarán más detalles
+previo a la migración real".
+
+**Qué falta**: el procedimiento paso a paso de la noche del corte. Quién avisa al
+cliente, en qué momento exacto la instancia vieja pasa a solo-lectura, qué se hace
+si un chequeo bloqueante falla a las 3 de la mañana, y cómo se confirma que el gym
+puede abrir. **Ya decidido**: lo corre DevOps, de noche, sin presencia del
+gimnasio, y la firma del negocio llega después contra la instancia congelada.
+
+---
+
+### P-17 — Qué reportes de negocio se comparan entre el sistema viejo y el nuevo
+
+**Estado**: ☐ **abierta** — "documéntalo como algo que revisaré con el equipo, no
+es bloqueante ahora".
+
+**Por qué importa**: sería el único chequeo que valida **semántica** y no
+estructura. Los nueve implementados verifican que los datos *llegaron*; este
+verificaría que el sistema nuevo *los interpreta igual*. Sin él, un reporte puede
+cuadrar en filas y descuadrar en significado.
+
+**Cómo se cierra**: no con prototipo. Es conocimiento del negocio — qué revisa la
+dirección del gimnasio cada día y notaría mal al día siguiente.
+
+---
+
 ## Respuestas resueltas (histórico de esta lista)
 
 | # | Pregunta | Respuesta | Dónde quedó |
@@ -409,3 +510,10 @@ directamente su sucursal sin necesidad de seleccionarla.
 | S-03 | ¿Staff y turnos: centro o sucursal? | **Staff por sucursal** (STAFF/REGISTRATION/quiosco requieren `branch_id`; ADMIN/CENTER_ADMIN abarcan el centro), **un turno de caja abierto por sucursal**, token con `center_uuid` + `branch_uuid`. | ADR-0010, ADR-0004 |
 | S-04 | ¿Tarifas/planes/artículos compartidos? | **Catálogo a nivel centro** (precios únicos); **stock por sucursal** (nueva tabla `branch_stock`). Override de precios por sucursal = fase posterior. | ADR-0010 |
 | S-05 | ¿Cómo sobrevive la contabilidad a la eliminación de una sucursal? | **Solo desactivación lógica**: no existe borrado físico de sucursales; toda FK financiera queda intacta. | ADR-0010 |
+| M-01 | ¿Se convierten las instalaciones actuales o se levanta una instancia nueva? | **Instancia SaaS nueva** (base, backend, frontend y dominio nuevos), secuencial, un gimnasio a la vez. Las instalaciones actuales no se convierten: se congelan en solo-lectura 1-2 semanas y DevOps las apaga. Sin rollback. | ADR-0013 |
+| M-02 | ¿Dónde vive la marca con dos gimnasios en un backend? | **Columna de `centers`**; el backend sigue siendo su dueño y la resuelve del centro del token. Un solo bucket de S3 con prefijo por centro; las fotos existentes conservan su prefijo histórico. | ADR-0014 |
+| M-03 | ¿El migrador preserva los IDs? | **No, es imposible**: `members.id` y `users.id` son `INT AUTO_INCREMENT` con PK simple y las dos instalaciones traen `id = 1`. Se remapean y la correspondencia se archiva. Lo que se preserva son **las fechas**, que era el requisito real. | ADR-0015 |
+| M-04 | ¿SQL directo o alta por API? | **SQL directo** sobre un dump congelado. El alta por API heredaría las validaciones de los servicios Java, pero no puede preservar las fechas originales. | ADR-0015 |
+| M-05 | ¿Idempotente o restaurable? | **Restaurable**: una corrida fallida restaura el destino y re-corre desde el mismo dump. Con el snapshot disponible, la idempotencia no compra nada. | ADR-0015 |
+| M-06 | ¿Qué es un dry-run? | **Corrida completa contra un destino desechable.** Una corrida que no escribe no puede comparar conteos, porque no hay destino que comparar. | ADR-0015 |
+| M-07 | ¿Cómo se valida que la migración quedó bien? | Chequeos bloqueantes con severidad configurable, **más** migrar el mismo gimnasio dos veces y comparar las copias: eso prueba determinismo, aislamiento entre centros e independencia de IDs en una sola pasada. | ADR-0015 |

@@ -4,3 +4,6 @@
 .obsidian/plugins/**/cache.json
 .obsidian/plugins/**/.DS_Store
 .DS_Store
+
+# Estado transitorio del flujo SDD (preguntas abiertas entre entrevista y spec)
+.sdd/

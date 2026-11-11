@@ -26,6 +26,12 @@ con claim de centro, impersonación, aprobación de turnos y migración one-shot
 contradicciones detectadas entre doc base/ADRs/stories y huecos por cerrar antes
 de implementar.
 
+## Glosario
+
+[Glosario](glossary.md) — vocabulario acordado del proyecto. Registra el significado
+que el equipo acordó en conversación, no el del diccionario, y nombra el término
+confundible más cercano de cada entrada.
+
 ## Índice de ADRs
 
 | ADR | Título | Estado |
@@ -34,13 +40,17 @@ de implementar.
 | [ADR-0002](adr/ADR-0002-identificacion-de-centros.md) | Identidad de centros: id numérico + UUID externo | Aceptada |
 | [ADR-0003](adr/ADR-0003-roles-y-superadministracion.md) | Roles, superadministración e impersonación con auditoría | Aceptada |
 | [ADR-0004](adr/ADR-0004-jwt-claim-de-centro.md) | JWT con claim de centro; el cliente no envía el centro | Aceptada |
-| [ADR-0005](adr/ADR-0005-unicidad-de-socios-por-centro.md) | Unicidad de teléfonos y correos de socios por centro | Aceptada |
+| [ADR-0005](adr/ADR-0005-unicidad-de-socios-por-centro.md) | Unicidad de teléfonos y correos de socios por centro | Aceptada — **reconciliada por V706**: la unicidad es por centro **+ sucursal** |
 | [ADR-0006](adr/ADR-0006-aprobacion-de-turnos-fuera-de-instalaciones.md) | Aprobación de apertura/cierre de turnos con desfase | Aceptada |
-| [ADR-0007](adr/ADR-0007-migracion-de-datos.md) | Migración de datos one-shot con script Python | Aceptada |
+| [ADR-0007](adr/ADR-0007-migracion-de-datos.md) | Migración de datos one-shot con script Python | **Histórica** — reemplazada por ADR-0013 y ADR-0015 |
 | [ADR-0008](adr/ADR-0008-sucursales-diferidas.md) | Sucursales diferidas; configuraciones ligadas a Centro | Sustituida parcialmente por ADR-0010 |
 | [ADR-0009](adr/ADR-0009-planes-diferidos.md) | Planes de funcionalidades por centro diferidos | Aceptada |
-| [ADR-0010](adr/ADR-0010-sucursales-contabilidad-aislada.md) | Sucursales (1:N con centro) y contabilidad aislada por sucursal | Aceptada |
+| [ADR-0010](adr/ADR-0010-sucursales-contabilidad-aislada.md) | Sucursales (1:N con centro) y contabilidad aislada por sucursal | Aceptada — **regla 4 revertida** (socios por sucursal) y **regla 7 en conflicto** (`branch_stock`, P-14) |
 | [ADR-0011](adr/ADR-0011-integracion-wellhub.md) | Integración de FitRoom con Wellhub | Propuesta |
+| [ADR-0012](adr/ADR-0012-almacenamiento-fotos-de-socios.md) | Almacenamiento de fotos de socios en S3 con URLs firmadas | Propuesta — enmendada por ADR-0014 |
+| [ADR-0013](adr/ADR-0013-instancia-saas-nueva-en-lugar-de-conversion-en-sitio.md) | Instancia SaaS nueva en lugar de convertir las instalaciones existentes | Aceptada |
+| [ADR-0014](adr/ADR-0014-marca-por-centro-y-bucket-unico.md) | La marca es atributo del centro; un solo bucket con prefijo por centro | Aceptada |
+| [ADR-0015](adr/ADR-0015-migrador-desde-dump-congelado-restaurable-y-verificado.md) | Migrador en Python desde dump congelado, restaurable y verificado | Aceptada |
 
 ## Índice de stories
 
